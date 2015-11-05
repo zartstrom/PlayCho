@@ -1,13 +1,14 @@
 // Turn this project into a Scala.js project by importing these settings
 enablePlugins(ScalaJSPlugin)
 
-name := "Example"
+name := "Board"
 
 version := "0.1-SNAPSHOT"
 
 scalaVersion := "2.11.7"
 
-persistLauncher in Compile := true
+// persistLauncher in Compile := true
+persistLauncher in Compile := false
 
 persistLauncher in Test := false
 
