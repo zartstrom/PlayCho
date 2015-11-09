@@ -22,11 +22,12 @@ class Board(val boardSize: BoardSize) {
   }
 
   def getStone(c: Coordinate): Int = {
-    stones(c.toIndex)
+    if (c.isValid) stones(c.toIndex) else Board.UNKNOWN
   }
 
   def getCoordinateByPoint(p: Int): Coordinate = {
-    val x = p % boardSize.y
+    // works also for non-quadratic boards
+    val x = p % boardSize.x
     val y = p / boardSize.x
     new Coordinate(x, y)(boardSize)
   }

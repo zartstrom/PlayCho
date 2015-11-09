@@ -24,7 +24,7 @@ class Coordinate(val x: Int, val y: Int)(implicit boardSize: BoardSize) {
 
   def toIndex(): Int = {
     // return canonical 1-dimensional representation of 2-dimensional coordinate
-    x + boardSize.x * y
+    if (isValid) x + boardSize.x * y else -1
   }
 
   override def toString(): String = {

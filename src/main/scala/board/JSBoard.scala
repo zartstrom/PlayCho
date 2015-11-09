@@ -7,11 +7,13 @@ import org.scalajs.dom.html
 
 import Board._
 
-// object ScalaJSExample extends js.JSApp {
 @js.native
 class HTMLImageElement extends dom.raw.HTMLImageElement {
   //def onload: js.Function1[dom.Event, _] = ???
 }
+
+@js.native
+class HTMLCanvasElement extends dom.raw.HTMLCanvasElement { }
 
 
 @JSExport
@@ -22,7 +24,7 @@ object JSBoard {
     val ctx = canvas.getContext("2d").asInstanceOf[dom.CanvasRenderingContext2D]
 
     // start with a 9x9 board
-    implicit val boardSize = BoardSize(5, 5)
+    implicit val boardSize = BoardSize(13, 13)
     val board = new Board(boardSize)
     val pad = 30
     val padLeft = pad
@@ -77,8 +79,39 @@ object JSBoard {
       }
       ctx.stroke()
     }
+    //  // Store rendered board in another canvas for fast redraw
+    //  this.backup = document.createElement('canvas');
+    //  this.backup.width = canvas.width;
+    //  this.backup.height = canvas.height;
+    //  this.backup.getContext('2d').drawImage(canvas,
+    //      0, 0, canvas.width, canvas.height,
+    //      0, 0, canvas.width, canvas.height);
 
-    def drawStone(c: Coordinate, stone: Int) {
+    var backup = dom.document.createElement("canvas").asInstanceOf[HTMLCanvasElement]
+
+    def createBackup(): Unit = {
+      backup.width = canvas.width
+      backup.height = canvas.height
+      backup.getContext("2d").drawImage(
+        canvas, padLeft, padTop, boardWidth, boardHeight, padLeft, padTop, boardWidth, boardHeight
+      )
+    }
+
+    def drawBoard() {
+      // draw material board
+      // var bgReady = false;
+      val bgImage = dom.document.createElement("img").asInstanceOf[HTMLImageElement]
+      bgImage.src = "images/large/walnut.jpg"
+      bgImage.onload = (e: dom.Event) => {
+        // bgReady = true
+        ctx.drawImage(bgImage, padLeft, padTop, boardWidth, boardHeight)
+        drawGrid()
+        createBackup()
+      }
+    }
+    drawBoard()
+
+    def drawStone(c: Coordinate, stone: Int): Unit = {
       def paint(alpha: Double, fillStyle: String) {
         ctx.globalAlpha = alpha
         ctx.fillStyle = fillStyle
@@ -96,26 +129,38 @@ object JSBoard {
       }
     }
 
-    def drawStones(board: Board) {
+    def drawStones(board: Board): Unit = {
       for (i <- 0 until board.stones.size) {
         val c = board.getCoordinateByPoint(i)
         drawStone(c, board.stones(i))
       }
     }
 
-    def drawBoard() {
-      // draw material board
-      // var bgReady = false;
-      val bgImage = dom.document.createElement("img").asInstanceOf[HTMLImageElement]
-      bgImage.src = "images/large/walnut.jpg"
-      bgImage.onload = (e: dom.Event) => {
-        // bgReady = true
-        ctx.drawImage(bgImage, padLeft, padTop, boardWidth, boardHeight)
-        drawGrid()
-        drawStones(board)
-      }
+    def draw(): Unit = {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      ctx.globalAlpha = 1
+      ctx.drawImage(
+        backup, padLeft, padTop, boardWidth, boardHeight, padLeft, padTop, boardWidth, boardHeight
+      )
+      drawStones(board)
     }
-    drawBoard()
+
+    //  // Store rendered board in another canvas for fast redraw
+    //  this.backup = document.createElement('canvas');
+    //  this.backup.width = canvas.width;
+    //  this.backup.height = canvas.height;
+    //  this.backup.getContext('2d').drawImage(canvas,
+    //      0, 0, canvas.width, canvas.height,
+    //      0, 0, canvas.width, canvas.height);
+      /**
+     * Restore portion of canvas.
+     */
+    //Canvas.prototype.restore = function(x, y, w, h) {
+    //  x = Math.floor(x);
+    //  y = Math.floor(y);
+    //  this.ctx.drawImage(this.backup, x, y, w, h, x, y, w, h);
+    //};
+
 
     //
     def getCoordinate(pageX: Double, pageY: Double): Coordinate = {
@@ -134,8 +179,22 @@ object JSBoard {
     //var ev = { type: 'type', coordinate: c, board: this,
     //  oldVal: old, newVal: t };
 
-    var lastCoordinate = new Coordinate(-1, -1)
+    val invalidCoord = new Coordinate(-1, -1)
+    var lastCoordinate = invalidCoord
     var lastType = UNKNOWN
+
+    def debug(): Unit = {
+      val stonesDiv = dom.document.getElementById("stones")
+      stonesDiv.innerHTML = ""
+      val p1 = dom.document.createElement("p")
+      p1.innerHTML = "last coordinate: %s; index: %d".format(lastCoordinate, lastCoordinate.toIndex)
+      val p2 = dom.document.createElement("p")
+      p2.innerHTML = "x: %d; y: %d".format(lastCoordinate.x, lastCoordinate.y)
+      val p3 = dom.document.createElement("p")
+      p3.innerHTML = "stones: %s".format(board.stones.toList.toString)
+
+      for (p <- List(p1, p2)) { stonesDiv.appendChild(p) }
+    }
 
     // add click listener
     val coordsTag = dom.document.createElement("div")
@@ -147,13 +206,14 @@ object JSBoard {
       //drawStone(c, Board.WHITE)
       board.setStone(c, player)
       lastType = UNKNOWN
-      drawBoard()
+      draw()
       // alternate Player
       player = player match { case `BLACK` => WHITE; case `WHITE` => BLACK; case _ => player }
+      debug()
     }
     canvas.addEventListener("click", handleClickEvent _)
 
-    def handleOnmousemoveEvent(ev: dom.MouseEvent): Unit = {
+    def handleMousemoveEvent(ev: dom.MouseEvent): Unit = {
       val c = getCoordinate(ev.clientX, ev.clientY)
       val currentType = board.getStone(c)
 
@@ -166,43 +226,20 @@ object JSBoard {
 
       val semi = player match { case `BLACK` => SEMI_BLACK; case `WHITE` => SEMI_WHITE; case _ => player }
       board.setStone(c, semi)
-      drawBoard()
+      draw()
+      debug()
     }
-    canvas.addEventListener("mousemove", handleOnmousemoveEvent _)
-    //      ctx.fillStyle = (type == C.WHITE) ? '#FFFFFF' : '#000000';
-    //ctx.beginPath();
-    //ctx.arc(ox, oy, this.stoneR*scale, 2*Math.PI, false);
-    //ctx.fill();
+    canvas.addEventListener("mousemove", handleMousemoveEvent _)
 
-    //if(type == C.WHITE) {
-    //  ctx.strokeStyle = '#000000';
-    //  ctx.stroke();
-    //}
-
-
-  // Stones and marks
-  //jboard.each(function(c, type, mark) {
-  //  var ox = (this.getX(c.i - this.opt.view.xOffset));
-  //  var oy = (this.getY(c.j - this.opt.view.yOffset));
-  //  var markColor;
-
-  //  switch(type) {
-  //    case C.BLACK:
-  //    case C.DIM_BLACK:
-  //      this.ctx.globalAlpha = type == C.BLACK ? 1 : this.opt.stone.dimAlpha;
-  //      this.stones.drawStone(this.ctx, type, ox, oy);
-  //      markColor = this.opt.mark.blackColor; // if we have marks, this is the color
-  //      break;
-  //    case C.WHITE:
-  //    case C.DIM_WHITE:
-  //      this.ctx.globalAlpha = type == C.WHITE ? 1 : this.opt.stone.dimAlpha;
-  //      this.stones.drawStone(this.ctx, type, ox, oy);
-  //      markColor = this.opt.mark.whiteColor; // if we have marks, this is the color
-  //      break;
-  //    default:
-  //      this.ctx.globalAlpha=1;
-  //      markColor = this.opt.mark.clearColor; // if we have marks, this is the color
-  //  }
+    def handleMouseoutEvent(ev: dom.MouseEvent): Unit = {
+      //val c = getCoordinate(ev.clientX, ev.clientY)  // duplicate code in the event handlers
+      if (lastCoordinate.isValid && lastType != UNKNOWN) { board.setStone(lastCoordinate, lastType) }
+      lastType = UNKNOWN
+      lastCoordinate = invalidCoord
+      draw()
+      debug()
+    }
+    canvas.addEventListener("mouseout", handleMouseoutEvent _)
 
     // keep this for quick feedback:
     val bounds = canvas.getBoundingClientRect()
