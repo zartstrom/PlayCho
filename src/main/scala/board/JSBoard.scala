@@ -222,10 +222,10 @@ object JSBoard {
 
       if (lastCoordinate == c) { return }
       if (lastCoordinate.isValid && lastType != UNKNOWN) { board.setStone(lastCoordinate, lastType) }
+      lastType = board.getStone(c)
+      lastCoordinate = c
       // make this more general, i.e. when in "erase mode"
       if (board.getStone(c) == EMPTY) {
-        lastType = board.getStone(c)
-        lastCoordinate = c
 
         val semi = player match { case `BLACK` => SEMI_BLACK; case `WHITE` => SEMI_WHITE; case _ => player }
         board.setStone(c, semi)
