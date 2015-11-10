@@ -6,6 +6,7 @@ import org.scalajs.dom
 import org.scalajs.dom.html
 
 import Board._
+import Stones._
 
 @js.native
 class HTMLImageElement extends dom.raw.HTMLImageElement {
@@ -45,6 +46,13 @@ object JSBoard {
     val gridRight = gridLeft + (boardSize.x - 1) * gridX;
 
     val stoneRadius = 24
+    //val shadowHeight, shadowWidth = 2 * stoneRadius
+    ctx.shadowColor = "#ffe0a8"
+    ctx.shadowBlur = 30
+    ctx.shadowOffsetX = 5
+    ctx.shadowOffsetX = 5
+    val shadowOffX = 5
+    val shadowOffY = 5
 
     val boardWidth = marginLeft + (boardSize.x - 1) * gridX + marginRight
     val boardHeight = marginTop + (boardSize.y - 1) * gridY + marginBottom
@@ -99,11 +107,9 @@ object JSBoard {
 
     def drawBoard() {
       // draw material board
-      // var bgReady = false;
       val bgImage = dom.document.createElement("img").asInstanceOf[HTMLImageElement]
       bgImage.src = "images/large/walnut.jpg"
       bgImage.onload = (e: dom.Event) => {
-        // bgReady = true
         ctx.drawImage(bgImage, padLeft, padTop, boardWidth, boardHeight)
         drawGrid()
         createBackup()
@@ -111,19 +117,34 @@ object JSBoard {
     }
     drawBoard()
 
-    def drawStone(c: Coordinate, stone: Int): Unit = {
-      def paint(alpha: Double, fillStyle: String) {
-        ctx.globalAlpha = alpha
-        ctx.fillStyle = fillStyle
-        ctx.beginPath()
-        ctx.arc(getX(c.x), getY(c.y), stoneRadius, 0, 2 * math.Pi);
-        ctx.fill()
-      }
-      stone match {
-        case `BLACK` => paint(1, "#000000")
-        case `WHITE` => paint(1, "#FFFFFF")
-        case `SEMI_BLACK` => paint(0.6, "#000000")
-        case `SEMI_WHITE` => paint(0.6, "#FFFFFF")
+    def drawShadow(c: Coordinate): Unit = {
+      val x = getX(c.x) + shadowOffX
+      val y = getY(c.y) + shadowOffY
+      ctx.globalAlpha = 1
+      ctx.drawImage(shadowOfStone,
+        (x - shadowOfStone.width / 2),
+        (y - shadowOfStone.height / 2),
+        shadowOfStone.width, shadowOfStone.height
+      );
+    }
+
+    def drawMaterialStone(stone: HTMLImageElement, c: Coordinate, alpha: Double) {
+      val x = getX(c.x)
+      val y = getY(c.y)
+      ctx.globalAlpha = alpha
+      ctx.drawImage(stone, 0, 0, 2 * stoneRadius, 2 * stoneRadius,
+        (x - stoneRadius),
+        (y - stoneRadius),
+        2 * stoneRadius, 2 * stoneRadius
+      );
+    }
+
+    def drawStone(coord: Coordinate, player: Int): Unit = {
+      player match {
+        case `BLACK` => { drawShadow(coord); drawMaterialStone(blackStone, coord, 1) }
+        case `WHITE` => { drawShadow(coord); drawMaterialStone(whiteStone, coord, 1) }
+        case `SEMI_BLACK` => drawMaterialStone(blackStone, coord, 0.6)
+        case `SEMI_WHITE` => drawMaterialStone(whiteStone, coord, 0.6)
         case `EMPTY` => { }
         case _ => {}
       }
@@ -145,24 +166,6 @@ object JSBoard {
       drawStones(board)
     }
 
-    //  // Store rendered board in another canvas for fast redraw
-    //  this.backup = document.createElement('canvas');
-    //  this.backup.width = canvas.width;
-    //  this.backup.height = canvas.height;
-    //  this.backup.getContext('2d').drawImage(canvas,
-    //      0, 0, canvas.width, canvas.height,
-    //      0, 0, canvas.width, canvas.height);
-      /**
-     * Restore portion of canvas.
-     */
-    //Canvas.prototype.restore = function(x, y, w, h) {
-    //  x = Math.floor(x);
-    //  y = Math.floor(y);
-    //  this.ctx.drawImage(this.backup, x, y, w, h, x, y, w, h);
-    //};
-
-
-    //
     def getCoordinate(pageX: Double, pageY: Double): Coordinate = {
       var bounds = canvas.getBoundingClientRect()
       // why canvas.width / (bounds.right - bounds.left)? isn't it == 1?!
@@ -219,13 +222,14 @@ object JSBoard {
 
       if (lastCoordinate == c) { return }
       if (lastCoordinate.isValid && lastType != UNKNOWN) { board.setStone(lastCoordinate, lastType) }
-      if (board.getStone(c) != EMPTY) { return }
+      // make this more general, i.e. when in "erase mode"
+      if (board.getStone(c) == EMPTY) {
+        lastType = board.getStone(c)
+        lastCoordinate = c
 
-      lastType = board.getStone(c)
-      lastCoordinate = c
-
-      val semi = player match { case `BLACK` => SEMI_BLACK; case `WHITE` => SEMI_WHITE; case _ => player }
-      board.setStone(c, semi)
+        val semi = player match { case `BLACK` => SEMI_BLACK; case `WHITE` => SEMI_WHITE; case _ => player }
+        board.setStone(c, semi)
+      }
       draw()
       debug()
     }

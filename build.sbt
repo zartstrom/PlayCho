@@ -14,6 +14,9 @@ persistLauncher in Test := false
 
 testFrameworks += new TestFramework("utest.runner.Framework")
 
+// append -unchecked and -deprecation to the options passed to the Scala compiler
+scalacOptions ++= Seq("-unchecked", "-deprecation")
+
 libraryDependencies ++= Seq(
     "org.scala-js" %%% "scalajs-dom" % "0.8.2",
     "com.lihaoyi" %%% "utest" % "0.3.0" % "test",
