@@ -7,6 +7,8 @@ import org.scalajs.dom.html
 
 import Board._
 import Stones._
+import Constants._
+
 
 @js.native
 class HTMLImageElement extends dom.raw.HTMLImageElement {
@@ -25,7 +27,7 @@ object JSBoard {
     val ctx = canvas.getContext("2d").asInstanceOf[dom.CanvasRenderingContext2D]
 
     // start with a 9x9 board
-    implicit val boardSize = BoardSize(13, 13)
+    implicit val boardSize = BoardSize(13, 5)
     val board = new Board(boardSize)
     val pad = 30
     val padLeft = pad
@@ -47,10 +49,10 @@ object JSBoard {
 
     val stoneRadius = 24
     //val shadowHeight, shadowWidth = 2 * stoneRadius
-    ctx.shadowColor = "#ffe0a8"
-    ctx.shadowBlur = 30
-    ctx.shadowOffsetX = 5
-    ctx.shadowOffsetX = 5
+    //ctx.shadowColor = "#ffe0a8"
+    //ctx.shadowBlur = 30
+    //ctx.shadowOffsetX = 5
+    //ctx.shadowOffsetX = 5
     val shadowOffX = 5
     val shadowOffY = 5
 
@@ -87,13 +89,53 @@ object JSBoard {
       }
       ctx.stroke()
     }
-    //  // Store rendered board in another canvas for fast redraw
-    //  this.backup = document.createElement('canvas');
-    //  this.backup.width = canvas.width;
-    //  this.backup.height = canvas.height;
-    //  this.backup.getContext('2d').drawImage(canvas,
-    //      0, 0, canvas.width, canvas.height,
-    //      0, 0, canvas.width, canvas.height);
+
+    def drawCoordinates(): Unit = {
+      //   A B C D E F G H J K L ...
+      // 1
+      // 2
+      // ...
+
+      ctx.font = "normal 18px sanf-serif"
+      ctx.fillStyle = "#808080"
+      ctx.textAlign = "center"
+      ctx.textBaseline = "middle"
+
+      for(i <- 0 until boardSize.x) {
+        ctx.fillText(COORDINATES(i), gridLeft + gridX * i, marginTop / 2)
+        ctx.fillText(COORDINATES(i), gridLeft + gridX * i, canvas.height - marginTop / 2)
+      }
+      for(j <- 0 until boardSize.y) {
+        ctx.fillText((boardSize.y - j).toString, marginLeft / 2, gridTop + j * gridY)
+        ctx.fillText((boardSize.y - j).toString, canvas.width - marginRight / 2, gridTop + j * gridY)
+      }
+    }
+
+
+  // Draw horizontal coordinates
+  //for(i=0; i<opt.view.width; i++) {
+  //  if(opt.coordinates && opt.coordinates.top)
+  //    this.ctx.fillText(C.COORDINATES[i + opt.view.xOffset],
+  //        this.gridLeft + opt.grid.x * i,
+  //        this.marginTop / 2);
+  //  if(opt.coordinates && opt.coordinates.bottom)
+  //    this.ctx.fillText(C.COORDINATES[i + opt.view.xOffset],
+  //        this.gridLeft + opt.grid.x * i,
+  //        canvas.height - this.marginBottom / 2);
+  //}
+
+  //// Draw vertical coordinates
+  //for(i=0; i<opt.view.height; i++) {
+  //  if(opt.coordinates && opt.coordinates.left)
+  //    this.ctx.fillText(''+(opt.board.height-opt.view.yOffset-i),
+  //        this.marginLeft / 2,
+  //        this.gridTop + opt.grid.y * i);
+  //  if(opt.coordinates && opt.coordinates.right)
+  //    this.ctx.fillText(''+(opt.board.height-opt.view.yOffset-i),
+  //        canvas.width - this.marginRight / 2,
+  //        this.gridTop + opt.grid.y * i);
+  //}
+
 
     var backup = dom.document.createElement("canvas").asInstanceOf[HTMLCanvasElement]
 
@@ -112,6 +154,7 @@ object JSBoard {
       bgImage.onload = (e: dom.Event) => {
         ctx.drawImage(bgImage, padLeft, padTop, boardWidth, boardHeight)
         drawGrid()
+        drawCoordinates()
         createBackup()
       }
     }
