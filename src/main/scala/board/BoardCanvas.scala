@@ -120,7 +120,7 @@ class BoardCanvas(canvas: html.Canvas, implicit val boardSize: BoardSize) {
   def shadow(c: Coordinate): Unit = {
     val x = getX(c.x) + Const.shadowOffX
     val y = getY(c.y) + Const.shadowOffY
-    val shadowScale = 1.5  // this is about the picture "shadowOfStone"
+    val shadowScale = 1.8  // this is about the picture "shadowOfStone"
     ctx.globalAlpha = 1
     ctx.drawImage(shadowOfStone,
       (x - Const.gridX * shadowScale / 2),
