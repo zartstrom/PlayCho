@@ -1,21 +1,23 @@
-package board
+package ui
 
 import scala.scalajs.js
 import js.annotation.JSExport
 import org.scalajs.dom
 import org.scalajs.dom.html
 
-import Board._
 import Stones._
 import Const._
+import game._ // how to import just the package game 'import game' results in compile error
+import game.Board._
 
 
 @JSExport
 object JSBoard {
   @JSExport
   def main(canvas: html.Canvas): Unit = {
-    implicit val boardSize = BoardSize(13, 5)
+    implicit val boardSize = BoardSize(5, 5)
     val board = new Board(boardSize)
+    val g = new Game(board)  // board should be part of the game class
     val boardCanvas = new BoardCanvas(canvas, boardSize) // draws the empty board
 
     var player = BLACK
@@ -39,14 +41,22 @@ object JSBoard {
     // add click listener
     val coordsTag = dom.document.createElement("div")
     coordsTag.innerHTML = "Click on the board to find about coords"
+    val alertTag = dom.document.createElement("div")
+    alertTag.innerHTML = "Alerts come here"
 
     def handleClickEvent(ev: dom.MouseEvent): Unit = {
       val c = boardCanvas.getCoordinate(ev.clientX, ev.clientY)
       coordsTag.innerHTML = "ClientX: %d ClientY: %d <br> Coordinate: %s".format(ev.clientX, ev.clientY, c.toString)
-      board.setStone(c, player)
-      lastType = UNKNOWN
-      boardCanvas.draw(board)
-      player = player match { case `BLACK` => WHITE; case `WHITE` => BLACK; case _ => player }
+      //if (g.isLegal(CoolMove(c, player))) {
+        board.setStone(c, player)
+        lastType = UNKNOWN
+        boardCanvas.draw(board)
+        alertTag.innerHTML = "ok"
+        player = player match { case `BLACK` => WHITE; case `WHITE` => BLACK; case _ => player }
+      //} else {
+        //alertTag.innerHTML = "illegal Move!!!"
+        //// alert me
+      //}
       debug()
     }
     canvas.addEventListener("click", handleClickEvent _)
@@ -86,6 +96,7 @@ object JSBoard {
     paragraph.innerHTML = "Height: %d Width: %d".format(bounds.height, bounds.width)
     val q = dom.document.createElement("p")
     q.innerHTML = "Top: %f, Right: %f, Bottom: %f, Left %f".format(bounds.top, bounds.right, bounds.bottom, bounds.left)
+    dom.document.getElementById("footer").appendChild(alertTag)
     dom.document.getElementById("footer").appendChild(paragraph)
     dom.document.getElementById("footer").appendChild(q)
     dom.document.getElementById("footer").appendChild(coordsTag)

@@ -1,11 +1,14 @@
-package board
+package ui
 
 import org.scalajs.dom
 import org.scalajs.dom.html
 import scala.scalajs.js
 
-import Board._
 import Stones._
+import game.Board
+import game.Board._
+import game.BoardSize
+import game.Coordinate
 
 
 @js.native
@@ -65,7 +68,7 @@ class BoardCanvas(canvas: html.Canvas, implicit val boardSize: BoardSize) {
     // 2
     // ...
 
-    ctx.font = "normal 18px sanf-serif"
+    ctx.font = "normal 18px sanf-serif" // move to Const
     ctx.fillStyle = "#808080" // move to Const
     ctx.textAlign = "center"
     ctx.textBaseline = "middle"
@@ -81,6 +84,7 @@ class BoardCanvas(canvas: html.Canvas, implicit val boardSize: BoardSize) {
   }
 
   def wood(image: HTMLImageElement): Unit = {
+    // draw the wooden board
     ctx.shadowBlur = 10
     ctx.shadowOffsetX = 5
     ctx.shadowOffsetY = 5
@@ -115,7 +119,7 @@ class BoardCanvas(canvas: html.Canvas, implicit val boardSize: BoardSize) {
     }
   }
 
-  emptyBoard()
+  emptyBoard()  // hidden part of the constructor
 
   def shadow(c: Coordinate): Unit = {
     val x = getX(c.x) + Const.shadowOffX
