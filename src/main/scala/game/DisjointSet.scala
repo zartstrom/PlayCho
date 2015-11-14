@@ -1,4 +1,6 @@
-package game
+package baduk
+
+import scala.language.implicitConversions
 
 import scala.collection.mutable
 

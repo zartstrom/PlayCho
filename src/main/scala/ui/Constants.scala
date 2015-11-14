@@ -18,7 +18,7 @@ object Stones {
 
 object Const {
 
-  val COORDINATES = Array[String]("A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "O")  // and so on
+  val COORDS = Array[String]("A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "O")  // and so on
 
   val pad = 40
   val padLeft = pad

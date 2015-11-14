@@ -1,230 +1,175 @@
-package game
+package baduk
 
 import collection.mutable.ArrayBuffer
 import collection.mutable.HashMap
-import java.security.MessageDigest
 import math.abs
 import scala.util.Random
+import scala.util.{Try, Success, Failure}
 
 
-case class M(color: Int, point: Int)
-case class Move(color: Int, coord: String)
-case class CoolMove(c: Coordinate, player: Int)
+case class Move(coord: Coord, player: Int)
 
 
 object Game {
 
+  // need these here?
   val EMPTY = 0
   val BLACK = 1
   val WHITE = 2
   val MIXED = -1
 
-  val digest = MessageDigest.getInstance("MD5")
-
-  def getCoordinate(size: Int, point: Int): String = {
-    val letter = {
-      val mod = point % size
-      if (65 + mod >= 73) { (65 + mod + 1).toChar } else { (65 + mod).toChar }
-    }
-    letter + (size - point / size).toString
+  def apply(boardSize: BoardSize): Game = {
+    val board = new Board(boardSize)
+    new Game(board)
   }
-
-  def getPoint(size: Int, coordinate: String): Int = {
-    assert(coordinate.size <= 3)
-    // 65 = A; 73 = I; I is not used in coordinates
-    val col = if (coordinate.head.toInt > 73) { coordinate.head.toInt - 65 - 1 } else { coordinate.head.toInt - 65 }
-    val row = size - coordinate.tail.toInt
-
-    col + size * row
+  
+  def apply(size: Int): Game = {
+    val boardSize = BoardSize(size, size)
+    apply(boardSize)
   }
-
-  def getPointCoordMap(size: Int): Map[Int, String] = {
-    (0 until size * size) map ( x => Map(x -> getCoordinate(size, x)) ) reduce (_ ++ _)
-  }
-
-  def getCoordPointMap(size: Int): Map[String, Int] = {
-    getPointCoordMap(size) map (_.swap)
-  }
-
-  def hashBoard(points: Array[Int]): String = {
-    digest.digest(points map (_.toByte)).map("%02x".format(_)).mkString
-  }
-
 }
 
 class Game(val board: Board, val komi: Double = 6.5) {
   // separated Board and Game classes; lets see how this plays out
-  val sizeX = board.boardSize.x
-  val sizeY = board.boardSize.y
-  val points = new Array[Int](sizeX * sizeY)
+  implicit val boardSize = board.boardSize
 
   var moveNr = 0
-  var seen = Map[String, Int]()
   var capturedStonesBy = HashMap(Board.BLACK -> 0, Board.WHITE -> 0)
+
+  // keep it for later!
   //val displayer = new TerminalDisplay(this.size)
+  //def display { this.displayer.display(board.stones) }
 
-  //def display {
-  //  this.displayer.display(this.points)
-  //}
-
-  val coordPointMap = Game.getCoordPointMap(this.sizeX) // TODO: non-quadratic
-  val pointCoordMap = Game.getPointCoordMap(this.sizeX) // TODO: non-quadratic
-
-  def getNeighbours(point: Int): List[Int] = {
-    val potentialNeighbours = List(point - this.sizeY, point + this.sizeY, point - 1, point + 1)
-
-    def good(p: Int): Boolean = {
-      p >= 0 && p < this.points.size && { abs(p % this.sizeX - point % this.sizeX) <= 1 }
-    }
-
-    potentialNeighbours filter good
-  }
-
-  var neighbours = new HashMap[Int, List[Int]]
-
-  def initNeighbourHash {
-    for(i <- 0 until this.points.size) {
-      neighbours(i) = this.getNeighbours(i)
-    }
-  }
-  initNeighbourHash
+  val neighbours: Map[Int, List[Int]] = (for { 
+    i <- 0 until board.stones.size
+  } yield { (i -> Coord(i).neighbours.map(_.toInt)) }).toMap
 
   def makeRandomMove(color: Int): Int = {
-    val lm = this.legalMoves(color)
+    val lm = this.legalMoves(board.stones, color)
     val r = Random
     val move = lm(r.nextInt(lm.size))
     this.make(move)
-    //this.getCoordinate(point)
-    move.point
+    move.coord
   }
 
-  def convert(move: Move): M = {
-    M(move.color, coordPointMap(move.coord))
-  }
-
-  def placeStone(points: Array[Int], m: M) {
-    points(m.point) = m.color
+  def placeStone(points: Array[Int], move: Move) {
+    points(move.coord) = move.player
   }
 
   def getStone(point: Int): Int = {
-    points(point)
+    board.stones(point)
   }
 
-  def getStone(coord: String): Int = {
-    getStone(coordPointMap(coord))
+  def getStone(s: String): Int = {
+    getStone(Coord(s))
   }
 
   // rename one of the placeStone / placeStones methods, because signatures are too different
 
-  def placeStones(color: Int, coords: List[String]) {
-    for(c <- coords) { make(Move(color, c)) }
+  def placeStones(points: Array[Int], coords: List[String], player: Int) {
+    for(s <- coords) { placeStone(points, Move(Coord(s), player)) }
   }
 
-  def isCapture(m: M): Boolean = {
-    val enemies = neighbours(m.point) filter ( x => { val p = this.points(x);  p != m.color && p != Board.EMPTY } )
-    val liberties = enemies map ( getLiberties(_).size )
-    val killed = liberties filter ( _ == 1 )
+  def isCapture(points: Array[Int], move: Move): Boolean = {
+    val enemies = neighbours(move.coord) filter ( x => { val p = points(x);  p != move.player && p != Board.EMPTY } )
+    //println("enemies: %s".format(enemies))
+    val liberties = enemies map ( getLiberties(points, _).size )
+    //println("liberties: %s".format(liberties))
+    val killedNeighbors = liberties filter ( _ == 1 )
 
-    killed.size > 0
+    killedNeighbors.size > 0
   }
 
-  def isCapture(move: Move): Boolean = {
-    isCapture(convert(move))
+  def isSuicide(points: Array[Int], move: Move): Boolean = {
+    val isCapture: Boolean = this.isCapture(points, move)
+    //println("isCapture: %s".format(isCapture.toString))
+
+    if (isCapture) { false } else {
+      val peek = points.clone
+      placeStone(peek, move)
+      getLiberties(peek, move.coord).size == 0
+    }
   }
 
-  def removeCapturedStones(points: Array[Int], m: M) {
-    val enemies = neighbours(m.point) filter ( x => { val p = points(x);  p != m.color && p != Board.EMPTY } )
+  def isEmptyPoint(points: Array[Int], move: Move): Try[Boolean] = {
+    if (points(move.coord) != Board.BLACK && points(move.coord) != Board.WHITE) {
+      Success(true)
+    } else Failure(new Exception("Place the stone on a empty point on the board"))
+  }
+
+  // make this snippet smarter
+  def isNotSuicide(points: Array[Int], move: Move): Try[Boolean] = {
+    val isCapture: Boolean = this.isCapture(points, move)
+    //println("isCapture: %s".format(isCapture.toString))
+
+    if (isCapture) { Success(true) } else {
+      val peek = points.clone
+      placeStone(peek, move)
+      if (getLiberties(peek, move.coord).size == 0) { 
+        Failure(new Exception("Suicide is not allowed"))
+      } else Success(true)
+    }
+  }
+
+  def isNotKo(koCoord: Coord, move: Move): Try[Boolean] = {
+    if (koCoord != move.coord) { Success(true) } else Failure(new Exception("Cannot retake ko immediately"))
+  }
+
+  def check(points: Array[Int], move: Move): Try[Move] = {
+    for {
+      _ <- isEmptyPoint(points, move)
+      _ <- isNotSuicide(points, move)
+      _ <- isNotKo(Coord("A3"), move) // fix this
+    } yield move
+  }
+
+  def check(move: Move): Try[Move] = { check(board.stones, move) }
+
+  def removeCapturedStones(points: Array[Int], move: Move): Unit = {
+    val enemies = neighbours(move.coord) filter ( x => { val p = points(x);  p != move.player && p != Board.EMPTY } )
+    println("enemies: %s".format(enemies))
     // there are possible duplicates, if two or more neighbours are connected
     //val stones = enemies filter ( getLiberties(_).size == 1 ) flatMap (p => getCC(p))
-    val stones = (enemies filter ( getLiberties(_).size == 1 ) flatMap getCC).toSet.toList
-    capturedStonesBy(m.color) = capturedStonesBy(m.color) + stones.size
+    val test = enemies filter ( getLiberties(points, _).size == 1 )
+    println("test: %s".format(test))
+
+    val stones = (enemies filter ( getLiberties(points, _).size == 1 ) flatMap getCC).toSet.toList
+    println("stones: %s".format(stones))
+    capturedStonesBy(move.player) = capturedStonesBy(move.player) + stones.size
     for(p <- stones) yield { points(p) = Board.EMPTY }
   }
 
   def removeGroup(point: Int) {
-    for(p <- getCC(point)) yield { placeStone(this.points, M(p, Board.EMPTY)) }
+    // too complicated; remove conversion to Move
+    for(p <- getCC(point)) yield { placeStone(board.stones, Move(Coord(p), Board.EMPTY)) }
   }
 
-  def isSuicide(m: M): Boolean = {
-    val isCapture: Boolean = this.isCapture(m)
-
-    if (isCapture) { false } else {
-      val b = this.points.clone
-      placeStone(b, m)
-      getLiberties(b, m.point).size == 0
+  def make(points: Array[Int], move: Move) {
+    // Assume check for validity took place if needed.
+    // Otherwise illegal positions may occur, which may be alright when setting up a position
+    val isCapture: Boolean = this.isCapture(points, move)
+    if (isCapture) { 
+      println("try to remove some stones")
+      removeCapturedStones(points, move)
     }
-  }
 
-  def isSuicide(move: Move): Boolean = {
-    isSuicide(convert(move))
-  }
-
-  def isLegal(points: Array[Int], m: M): Boolean = {
-    // clunky stuff
-    try {
-      assert (points(m.point) == Board.EMPTY, "place stone on empty point")
-      assert (!this.isSuicide(m), "do not commit suicide")
-      // check for suicide
-      // check for capture
-      val isCapture: Boolean = this.isCapture(m)
-      if (isCapture) {
-        val b = points.clone
-        removeCapturedStones(b, m)
-        placeStone(b, m)
-        val hash = Game.hashBoard(b)
-        assert (!this.seen.contains(hash) || this.seen(hash) - this.moveNr > 2)
-      }
-      true
-
-    } catch {
-      case _: AssertionError => false
-    }
-  }
-
-  def isLegal(move: Move): Boolean = {
-    isLegal(this.points, convert(move))
-  }
-
-  def isLegal(cm: CoolMove): Boolean = {
-    isLegal(this.board.stones, M(cm.player, cm.c.toIndex))
-  }
-
-  def make(points: Array[Int], m: M) {
-    // case class M(color: Int, point: Int)
-    // check for legality
-    val isCapture: Boolean = this.isCapture(m)
-    if (isCapture) { removeCapturedStones(points, m) }
-
-    placeStone(points, m)
-    this.seen = this.seen ++ Map(Game.hashBoard(points) -> this.moveNr)
+    placeStone(points, move)
     this.moveNr += 1
   }
 
-  def make(m: M) {
-    make(this.points, m: M)
-  }
-
   def make(move: Move) {
-    // case class Move(color: Int, coord: String)
-    // the 'public' method for making moves, like make(Move(BLACK, "D5"))
-    // check for validity
-    val m = M(move.color, coordPointMap(move.coord))
-    this.make(m)
+    make(board.stones, move: Move)
   }
 
-  def makeMoves(moves: List[Move]) {
-    val ms  = moves map ( x => M(x.color, coordPointMap(x.coord)) )
-    makeMs(ms)
-  }
-
-  def makeMs(ms: List[M]) {
+  def makeMs(ms: List[Move]) {
     for(m <- ms) yield { make(m) }
   }
 
-  def legalMoves(color: Int): IndexedSeq[M] = {
-    // take care of no-suicide and ko rules later
-    val candidates = for(p <- 0 until this.points.size if this.points(p) == Board.EMPTY) yield M(color, p)
-    candidates filter ( m => !isSuicide(m) )
+  def legalMoves(points: Array[Int], player: Int): IndexedSeq[Move] = {
+    for {
+      p <- 0 until points.size
+      move <- check(Move(Coord(p), player)).toOption
+    } yield move
   }
 
   def getCC(points: Array[Int], point: Int): List[Int] = {
@@ -253,21 +198,25 @@ class Game(val board: Board, val komi: Double = 6.5) {
   }
 
   def getCC(point: Int): List[Int] = {
-    getCC(this.points, point)
+    getCC(board.stones, point)
   }
 
   def getLiberties(points: Array[Int], point: Int): List[Int] = {
-    val tmp = getCC(points, point) flatMap (getNeighbours(_) filter (x => points(x) == Board.EMPTY))
+    // have to check for BLACK and WHITE positively
+    // check for not EMPTY fails by hover stones SEMI_BLACK, SEMI_WHITE
+    // thats quite stupid
+    val tmp = getCC(points, point) flatMap
+      (neighbours(_) filter (x => (points(x) != Board.WHITE && points(x) != Board.BLACK)))
     tmp.toSet.toList
   }
 
   def getLiberties(point: Int): List[Int] = {
-    getLiberties(this.points, point)
+    getLiberties(board.stones, point)
   }
 
-  def getLiberties(coord: String): List[Int] = {
-    val point = coordPointMap(coord)
-    getLiberties(point)
+  def getLiberties(s: String): List[Int] = {
+    // A1 -> `liberties`
+    getLiberties(board.stones, Coord(s))
   }
 
   def getCCs(color: Int = Board.EMPTY): List[IndexedSeq[Int]] = {
@@ -277,10 +226,10 @@ class Game(val board: Board, val komi: Double = 6.5) {
     var nextLabel = 1
     val disjointSet = new DisjointSet[Int]
 
-    val labels = new Array[Int](this.points.size)
+    val labels = new Array[Int](board.stones.size)
 
     // first pass
-    for(p <- 0 until this.points.size if this.points(p) == color) {
+    for(p <- 0 until board.stones.size if board.stones(p) == color) {
       val ns = neighbours(p) filter (x => labels(x) != 0)
       if (ns.size == 0) {
         disjointSet += nextLabel
@@ -311,9 +260,9 @@ class Game(val board: Board, val komi: Double = 6.5) {
   }
 
   def cleanColor(points: IndexedSeq[Int]): Int = {
-    if (points.forall(p => this.points(p) == Board.BLACK)) {
+    if (points.forall(p => board.stones(p) == Board.BLACK)) {
       Board.BLACK
-    } else if (points.forall(p => this.points(p) == Board.WHITE)) {
+    } else if (points.forall(p => board.stones(p) == Board.WHITE)) {
       Board.WHITE
     } else {
       Board.MIXED
@@ -347,35 +296,33 @@ class Game(val board: Board, val komi: Double = 6.5) {
   def getDisjointSet(points: Array[Int], color: Int): DisjointSet[Int] = {
     // inspired by example in https://en.wikipedia.org/wiki/Connected-component_labeling
     val disjointSet = new DisjointSet[Int]
-    //val labels = new Array[Int](this.points.size)
-    //var nextLabel = 1
 
     // first pass
-    for(p <- 0 until this.points.size if this.points(p) == color) {
+    for(p <- 0 until board.stones.size if board.stones(p) == color) {
       disjointSet += p
-      val ps = (p :: neighbours(p)) filter (x => this.points(x) == color && x <= p)
+      val ps = (p :: neighbours(p)) filter (x => board.stones(x) == color && x <= p)
       for(l <- ps; k <- ps  if k > l) { disjointSet.union(l, k) }
     }
     disjointSet
   }
 
   def groupLiberties(cc: List[Int]): List[Int] = {
-    val tmp = for(p <- cc; n <- neighbours(p) if this.points(n) == Board.EMPTY) yield n
+    val tmp = for(p <- cc; n <- neighbours(p) if board.stones(n) == Board.EMPTY) yield n
     tmp.distinct
   }
 
   def getTerritories(point: Int): List[Iterable[Int]] = {
     val cc = getCC(point)
 
-    val dset = getDisjointSet(this.points, Board.EMPTY)
+    val dset = getDisjointSet(board.stones, Board.EMPTY)
 
     val keys = for(liberty <- groupLiberties(cc)) yield { dset(liberty) }
 
     keys.distinct map (x => dset.set(x))
   }
 
-  def getTerritories(coord: String): List[Iterable[Int]] = {
-    getTerritories(coordPointMap(coord))
+  def getTerritories(s: String): List[Iterable[Int]] = {
+    getTerritories(Coord(s))
   }
 }
 

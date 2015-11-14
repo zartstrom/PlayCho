@@ -4,11 +4,12 @@ import scala.scalajs.js
 import js.annotation.JSExport
 import org.scalajs.dom
 import org.scalajs.dom.html
+import scala.util.{Try, Success, Failure}
 
 import Stones._
 import Const._
-import game._ // how to import just the package game 'import game' results in compile error
-import game.Board._
+import baduk._ // how to import just the package baduk 'import baduk' results in compile error
+import baduk.Board._
 
 
 @JSExport
@@ -16,24 +17,23 @@ object JSBoard {
   @JSExport
   def main(canvas: html.Canvas): Unit = {
     implicit val boardSize = BoardSize(5, 5)
-    val board = new Board(boardSize)
-    val g = new Game(board)  // board should be part of the game class
+    val game = Game(boardSize)
     val boardCanvas = new BoardCanvas(canvas, boardSize) // draws the empty board
 
     var player = BLACK
-    val invalidCoord = new Coordinate(-1, -1)
-    var lastCoordinate = invalidCoord
+    val invalidCoord = new Coord(-1, -1)
+    var lastCoord = invalidCoord
     var lastType = UNKNOWN
 
     def debug(): Unit = {
       val stonesDiv = dom.document.getElementById("stones")
       stonesDiv.innerHTML = ""
       val p1 = dom.document.createElement("p")
-      p1.innerHTML = "last coordinate: %s; index: %d".format(lastCoordinate, lastCoordinate.toIndex)
+      p1.innerHTML = "last coord: %s; index: %d".format(lastCoord, lastCoord.toInt)
       val p2 = dom.document.createElement("p")
-      p2.innerHTML = "x: %d; y: %d".format(lastCoordinate.x, lastCoordinate.y)
+      p2.innerHTML = "x: %d; y: %d".format(lastCoord.x, lastCoord.y)
       val p3 = dom.document.createElement("p")
-      p3.innerHTML = "stones: %s".format(board.stones.toList.toString)
+      p3.innerHTML = "stones: %s".format(game.board.stones.toList.toString)
 
       for (p <- List(p1, p2)) { stonesDiv.appendChild(p) }
     }
@@ -45,47 +45,49 @@ object JSBoard {
     alertTag.innerHTML = "Alerts come here"
 
     def handleClickEvent(ev: dom.MouseEvent): Unit = {
-      val c = boardCanvas.getCoordinate(ev.clientX, ev.clientY)
-      coordsTag.innerHTML = "ClientX: %d ClientY: %d <br> Coordinate: %s".format(ev.clientX, ev.clientY, c.toString)
-      //if (g.isLegal(CoolMove(c, player))) {
-        board.setStone(c, player)
-        lastType = UNKNOWN
-        boardCanvas.draw(board)
-        alertTag.innerHTML = "ok"
-        player = player match { case `BLACK` => WHITE; case `WHITE` => BLACK; case _ => player }
-      //} else {
-        //alertTag.innerHTML = "illegal Move!!!"
-        //// alert me
-      //}
+      val coord = boardCanvas.getCoord(ev.clientX, ev.clientY)
+      coordsTag.innerHTML = "ClientX: %d ClientY: %d <br> Coord: %s".format(ev.clientX, ev.clientY, coord.toString)
+
+      game.check(Move(coord, player)) match {
+        case Success(move) => {
+          game.make(move)
+          lastType = UNKNOWN
+          boardCanvas.draw(game.board)
+          player = player match { case `BLACK` => WHITE; case `WHITE` => BLACK; case _ => player }
+          alertTag.innerHTML = "ok"
+        }
+        case Failure(ex) => {
+          alertTag.innerHTML = "illegal Move: %s".format(ex.getMessage)
+        }
+      }
       debug()
     }
     canvas.addEventListener("click", handleClickEvent _)
 
     def handleMousemoveEvent(ev: dom.MouseEvent): Unit = {
-      val c = boardCanvas.getCoordinate(ev.clientX, ev.clientY)
-      val currentType = board.getStone(c)
+      val c = boardCanvas.getCoord(ev.clientX, ev.clientY)
+      val currentType = game.board.getStone(c)
 
-      if (lastCoordinate == c) { return }
-      if (lastCoordinate.isValid && lastType != UNKNOWN) { board.setStone(lastCoordinate, lastType) }
-      lastType = board.getStone(c)
-      lastCoordinate = c
+      if (lastCoord == c) { return }
+      if (lastCoord.isValid && lastType != UNKNOWN) { game.board.setStone(lastCoord, lastType) }
+      lastType = game.board.getStone(c)
+      lastCoord = c
       // make this more general, i.e. when in "erase mode"
-      if (board.getStone(c) == EMPTY) {
+      if (game.board.getStone(c) == EMPTY) {
 
         val semi = player match { case `BLACK` => SEMI_BLACK; case `WHITE` => SEMI_WHITE; case _ => player }
-        board.setStone(c, semi)
+        game.board.setStone(c, semi)
       }
-      boardCanvas.draw(board)
+      boardCanvas.draw(game.board)
       debug()
     }
     canvas.addEventListener("mousemove", handleMousemoveEvent _)
 
     def handleMouseoutEvent(ev: dom.MouseEvent): Unit = {
-      //val c = getCoordinate(ev.clientX, ev.clientY)  // duplicate code in the event handlers
-      if (lastCoordinate.isValid && lastType != UNKNOWN) { board.setStone(lastCoordinate, lastType) }
+      if (lastCoord.isValid && lastType != UNKNOWN) { game.board.setStone(lastCoord, lastType) }
       lastType = UNKNOWN
-      lastCoordinate = invalidCoord
-      boardCanvas.draw(board)
+      lastCoord = invalidCoord
+      boardCanvas.draw(game.board)
       debug()
     }
     canvas.addEventListener("mouseout", handleMouseoutEvent _)

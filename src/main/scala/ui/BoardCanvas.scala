@@ -5,10 +5,10 @@ import org.scalajs.dom.html
 import scala.scalajs.js
 
 import Stones._
-import game.Board
-import game.Board._
-import game.BoardSize
-import game.Coordinate
+import baduk.Board
+import baduk.Board._
+import baduk.BoardSize
+import baduk.Coord
 
 
 @js.native
@@ -33,7 +33,7 @@ class BoardCanvas(canvas: html.Canvas, implicit val boardSize: BoardSize) {
   val boardWidth = Const.marginLeft + (boardSize.x - 1) * Const.gridX + Const.marginRight
   val boardHeight = Const.marginTop + (boardSize.y - 1) * Const.gridY + Const.marginBottom
 
-  def getX(i: Int): Int = { gridLeft + i * Const.gridX }  // convert a coordinate x-value into pixel x-value on canvas
+  def getX(i: Int): Int = { gridLeft + i * Const.gridX }  // convert a coord x-value into pixel x-value on canvas
   def getY(j: Int): Int = { gridTop + j * Const.gridY }
 
   val canvasWidth: Int = { Const.padLeft + boardWidth + Const.padRight }
@@ -62,7 +62,7 @@ class BoardCanvas(canvas: html.Canvas, implicit val boardSize: BoardSize) {
     ctx.stroke()
   }
 
-  def coordinates(): Unit = {
+  def coords(): Unit = {
     //   A B C D E F G H J K L ...
     // 1
     // 2
@@ -74,8 +74,8 @@ class BoardCanvas(canvas: html.Canvas, implicit val boardSize: BoardSize) {
     ctx.textBaseline = "middle"
 
     for(i <- 0 until boardSize.x) {
-      ctx.fillText(Const.COORDINATES(i), gridLeft + Const.gridX * i, Const.marginTop / 2)
-      ctx.fillText(Const.COORDINATES(i), gridLeft + Const.gridX * i, canvasHeight - Const.marginTop / 2)
+      ctx.fillText(Const.COORDS(i), gridLeft + Const.gridX * i, Const.marginTop / 2)
+      ctx.fillText(Const.COORDS(i), gridLeft + Const.gridX * i, canvasHeight - Const.marginTop / 2)
     }
     for(j <- 0 until boardSize.y) {
       ctx.fillText((boardSize.y - j).toString, Const.marginLeft / 2, gridTop + j * Const.gridY)
@@ -114,14 +114,14 @@ class BoardCanvas(canvas: html.Canvas, implicit val boardSize: BoardSize) {
     bgImage.onload = (e: dom.Event) => {
       wood(bgImage)
       grid()
-      coordinates()
+      coords()
       createBackup(canvas)
     }
   }
 
   emptyBoard()  // hidden part of the constructor
 
-  def shadow(c: Coordinate): Unit = {
+  def shadow(c: Coord): Unit = {
     val x = getX(c.x) + Const.shadowOffX
     val y = getY(c.y) + Const.shadowOffY
     val shadowScale = 1.8  // this is about the picture "shadowOfStone"
@@ -133,7 +133,7 @@ class BoardCanvas(canvas: html.Canvas, implicit val boardSize: BoardSize) {
     );
   }
 
-  def materialStone(stone: HTMLImageElement, c: Coordinate, alpha: Double) {
+  def materialStone(stone: HTMLImageElement, c: Coord, alpha: Double) {
     val x = getX(c.x)
     val y = getY(c.y)
     ctx.globalAlpha = alpha
@@ -144,7 +144,7 @@ class BoardCanvas(canvas: html.Canvas, implicit val boardSize: BoardSize) {
     );
   }
 
-  def stone(coord: Coordinate, player: Int): Unit = {
+  def stone(coord: Coord, player: Int): Unit = {
     player match {
       case `BLACK` => { shadow(coord); materialStone(blackStone, coord, 1) }
       case `WHITE` => { shadow(coord); materialStone(whiteStone, coord, 1) }
@@ -157,7 +157,7 @@ class BoardCanvas(canvas: html.Canvas, implicit val boardSize: BoardSize) {
 
   def stones(board: Board): Unit = {
     for (i <- 0 until board.stones.size) {
-      val c = board.getCoordinateByPoint(i)
+      val c = board.getCoordByPoint(i)
       stone(c, board.stones(i))
     }
   }
@@ -173,13 +173,13 @@ class BoardCanvas(canvas: html.Canvas, implicit val boardSize: BoardSize) {
     stones(board)
   }
 
-  def getCoordinate(pageX: Double, pageY: Double): Coordinate = {
-    /** converts a mouse position into baduk board coordinate */
+  def getCoord(pageX: Double, pageY: Double): Coord = {
+    /** converts a mouse position into baduk board coord */
     var bounds = canvas.getBoundingClientRect()
     val scaledX = (pageX - bounds.left) * canvasWidth / (bounds.right - bounds.left)
     val scaledY = (pageY - bounds.top) * canvasHeight / (bounds.bottom - bounds.top)
 
-    val c = new Coordinate(
+    val c = new Coord(
       math.round((scaledX - Const.marginLeft - Const.padLeft) / Const.gridX).toInt, // math.round returns Long, we want Int
       math.round((scaledY - Const.marginTop - Const.padTop) / Const.gridY).toInt
     )
