@@ -129,11 +129,11 @@ class Game(val board: Board, val komi: Double = 6.5) {
     val enemies = neighbours(move.coord) filter ( x => { val p = points(x);  p != move.player && p != Board.EMPTY } )
     println("enemies: %s".format(enemies))
     // there are possible duplicates, if two or more neighbours are connected
-    //val stones = enemies filter ( getLiberties(_).size == 1 ) flatMap (p => getCC(p))
+    //val stones = enemies filter ( getLiberties(_).size == 1 ) flatMap (p => connComp(p))
     val test = enemies filter ( getLiberties(points, _).size == 1 )
     println("test: %s".format(test))
 
-    val stones = (enemies filter ( getLiberties(points, _).size == 1 ) flatMap getCC).toSet.toList
+    val stones = (enemies filter ( getLiberties(points, _).size == 1 ) flatMap connComp).distinct
     println("stones: %s".format(stones))
     capturedStonesBy(move.player) = capturedStonesBy(move.player) + stones.size
     for(p <- stones) yield { points(p) = Board.EMPTY }
@@ -141,7 +141,7 @@ class Game(val board: Board, val komi: Double = 6.5) {
 
   def removeGroup(point: Int) {
     // too complicated; remove conversion to Move
-    for(p <- getCC(point)) yield { placeStone(board.stones, Move(Coord(p), Board.EMPTY)) }
+    for(p <- connComp(point)) yield { placeStone(board.stones, Move(Coord(p), Board.EMPTY)) }
   }
 
   def make(points: Array[Int], move: Move) {
@@ -172,7 +172,7 @@ class Game(val board: Board, val komi: Double = 6.5) {
     } yield move
   }
 
-  def getCC(points: Array[Int], point: Int): List[Int] = {
+  def connComp(points: Array[Int], point: Int): List[Int] = {
     // get connected component of stones or territory
     val color = points(point)
 
@@ -197,17 +197,19 @@ class Game(val board: Board, val komi: Double = 6.5) {
     helper(stream, seen, result)
   }
 
-  def getCC(point: Int): List[Int] = {
-    getCC(board.stones, point)
+  def connComp(point: Int): List[Int] = {
+    connComp(board.stones, point)
   }
 
   def getLiberties(points: Array[Int], point: Int): List[Int] = {
     // have to check for BLACK and WHITE positively
     // check for not EMPTY fails by hover stones SEMI_BLACK, SEMI_WHITE
-    // thats quite stupid
-    val tmp = getCC(points, point) flatMap
-      (neighbours(_) filter (x => (points(x) != Board.WHITE && points(x) != Board.BLACK)))
-    tmp.toSet.toList
+    // thats quite stupid; broken by design, etc..
+    def isLiberty(p: Int): Boolean = {
+      points(p) != Board.WHITE && points(p) != Board.BLACK
+    }
+
+    { connComp(points, point) flatMap ( neighbours(_) filter isLiberty ) }.distinct
   }
 
   def getLiberties(point: Int): List[Int] = {
@@ -219,7 +221,7 @@ class Game(val board: Board, val komi: Double = 6.5) {
     getLiberties(board.stones, Coord(s))
   }
 
-  def getCCs(color: Int = Board.EMPTY): List[IndexedSeq[Int]] = {
+  def connComps(color: Int = Board.EMPTY): List[IndexedSeq[Int]] = {
     // getConnectedComponents
     // inspired by example in https://en.wikipedia.org/wiki/Connected-component_labeling
 
@@ -273,7 +275,7 @@ class Game(val board: Board, val komi: Double = 6.5) {
     val counter = HashMap[Int, Int](Board.BLACK -> 0, Board.WHITE -> 0)
 
     for {
-      cc <- getCCs(Board.EMPTY)
+      cc <- connComps(Board.EMPTY)
       color = cleanColor(getRim(cc))
       if Set(Board.BLACK, Board.WHITE).contains(color)
     } yield { counter(color) += cc.size }
@@ -312,7 +314,7 @@ class Game(val board: Board, val komi: Double = 6.5) {
   }
 
   def getTerritories(point: Int): List[Iterable[Int]] = {
-    val cc = getCC(point)
+    val cc = connComp(point)
 
     val dset = getDisjointSet(board.stones, Board.EMPTY)
 
