@@ -1,4 +1,4 @@
-package baduk
+package shared
 
 import scala.language.implicitConversions
 

@@ -5,10 +5,10 @@ import org.scalajs.dom.html
 import scala.scalajs.js
 
 import Stones._
-import baduk.Board
-import baduk.Board._
-import baduk.BoardSize
-import baduk.Coord
+import shared.Board
+import shared.Board._
+import shared.BoardSize
+import shared.Coord
 
 
 @js.native
@@ -110,7 +110,7 @@ class BoardCanvas(canvas: html.Canvas, implicit val boardSize: BoardSize) {
     canvas.height = canvasHeight
 
     val bgImage = dom.document.createElement("img").asInstanceOf[HTMLImageElement]
-    bgImage.src = "images/large/walnut.jpg"
+    bgImage.src = "/assets/images/large/walnut.jpg"  // move the assets/images part of path out
     bgImage.onload = (e: dom.Event) => {
       wood(bgImage)
       grid()
@@ -126,11 +126,27 @@ class BoardCanvas(canvas: html.Canvas, implicit val boardSize: BoardSize) {
     val y = getY(c.y) + Const.shadowOffY
     val shadowScale = 1.8  // this is about the picture "shadowOfStone"
     ctx.globalAlpha = 1
+    // a lot of fuss below; that is all done to avoid drawing outside the wooden board
+    // maybe refactoring this is a good idea
+    val imgLeftX = x - Const.gridX * shadowScale / 2
+    val imgTopY = y - Const.gridY * shadowScale / 2
+
+    val fullX = Const.gridX * shadowScale
+    val fullY = Const.gridY * shadowScale
+
+    val spaceX = Const.padLeft + boardWidth - imgLeftX
+    val spaceY = Const.padTop + boardHeight - imgTopY
+
+    val sizeX = Math.min(fullX, spaceX)
+    val sizeY = Math.min(fullY, spaceY)
+
+    val clipX = shadowOfStone.width * ( sizeX / fullX )
+    val clipY = shadowOfStone.height * ( sizeY / fullY )
+
     ctx.drawImage(shadowOfStone,
-      (x - Const.gridX * shadowScale / 2),
-      (y - Const.gridY * shadowScale / 2),
-      Const.gridX * shadowScale, Const.gridY * shadowScale
-    );
+      0, 0, clipX, clipY,
+      imgLeftX, imgTopY, sizeX, sizeY
+    )
   }
 
   def materialStone(stone: HTMLImageElement, c: Coord, alpha: Double) {

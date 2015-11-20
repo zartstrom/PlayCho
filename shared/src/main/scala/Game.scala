@@ -1,4 +1,4 @@
-package baduk
+package shared
 
 import collection.mutable.ArrayBuffer
 import collection.mutable.HashMap

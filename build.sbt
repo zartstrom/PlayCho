@@ -1,25 +1,38 @@
-// Turn this project into a Scala.js project by importing these settings
-enablePlugins(ScalaJSPlugin)
+import sbt.Project.projectToRef
 
-name := "Board"
+lazy val clients = Seq(client)
+lazy val scalaV = "2.11.7"
 
-version := "0.1-SNAPSHOT"
+lazy val server = (project in file("server")).settings(
+  scalaVersion := scalaV,
+  scalaJSProjects := clients,
+  pipelineStages := Seq(scalaJSProd, gzip),
+  resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases",
+  libraryDependencies ++= Seq(
+    "com.vmunier" %% "play-scalajs-scripts" % "0.3.0",
+    "org.webjars" % "jquery" % "1.11.1",
+    specs2 % Test
+  )
+).enablePlugins(PlayScala).
+  aggregate(clients.map(projectToRef): _*).
+  dependsOn(sharedJvm)
 
-scalaVersion := "2.11.7"
+lazy val client = (project in file("client")).settings(
+  scalaVersion := scalaV,
+  persistLauncher := true,
+  persistLauncher in Test := false,
+  libraryDependencies ++= Seq(
+    "org.scala-js" %%% "scalajs-dom" % "0.8.2"
+  )
+).enablePlugins(ScalaJSPlugin, ScalaJSPlay).
+  dependsOn(sharedJs)
 
-// persistLauncher in Compile := true
-persistLauncher in Compile := false
+lazy val shared = (crossProject.crossType(CrossType.Pure) in file("shared")).
+  settings(scalaVersion := scalaV).
+  jsConfigure(_ enablePlugins ScalaJSPlay)
 
-persistLauncher in Test := false
+lazy val sharedJvm = shared.jvm
+lazy val sharedJs = shared.js
 
-// testFrameworks += new TestFramework("utest.runner.Framework")*/
-
-// append -unchecked and -deprecation to the options passed to the Scala compiler
-scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
-
-libraryDependencies ++= Seq(
-    "org.scala-js" %%% "scalajs-dom" % "0.8.2",
-    "com.lihaoyi" %%% "utest" % "0.3.0" % "test",
-    "org.scala-lang.modules" %% "scala-async" % "0.9.1",
-    "org.scalatest" % "scalatest_2.11" % "2.2.4" % "test"
-)
+// loads the Play project at sbt startup
+onLoad in Global := (Command.process("project server", _: State)) compose (onLoad in Global).value

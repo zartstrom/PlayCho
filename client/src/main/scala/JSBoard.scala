@@ -8,14 +8,16 @@ import scala.util.{Try, Success, Failure}
 
 import Stones._
 import Const._
-import baduk._ // how to import just the package baduk 'import baduk' results in compile error
-import baduk.Board._
+import shared._ // how to import just the package baduk 'import baduk' results in compile error
+import shared.Board._
 
 
-@JSExport
-object JSBoard {
-  @JSExport
-  def main(canvas: html.Canvas): Unit = {
+//@JSExport
+//object JSBoard {
+object JSBoard extends js.JSApp {
+  //@JSExport
+  def main(): Unit = {
+    val canvas = dom.document.getElementById("mainCanvas").asInstanceOf[html.Canvas]
     implicit val boardSize = BoardSize(9, 9)
     val game = Game(boardSize)
     val boardCanvas = new BoardCanvas(canvas, boardSize) // draws the empty board
