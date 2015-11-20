@@ -16,7 +16,7 @@ import baduk.Board._
 object JSBoard {
   @JSExport
   def main(canvas: html.Canvas): Unit = {
-    implicit val boardSize = BoardSize(5, 5)
+    implicit val boardSize = BoardSize(9, 9)
     val game = Game(boardSize)
     val boardCanvas = new BoardCanvas(canvas, boardSize) // draws the empty board
 
@@ -33,7 +33,7 @@ object JSBoard {
       val p2 = dom.document.createElement("p")
       p2.innerHTML = "x: %d; y: %d".format(lastCoord.x, lastCoord.y)
       val p3 = dom.document.createElement("p")
-      p3.innerHTML = "stones: %s".format(game.board.stones.toList.toString)
+      p3.innerHTML = "stones: %s".format(game.board.position.toList.toString)
 
       for (p <- List(p1, p2)) { stonesDiv.appendChild(p) }
     }
@@ -48,12 +48,12 @@ object JSBoard {
       val coord = boardCanvas.getCoord(ev.clientX, ev.clientY)
       coordsTag.innerHTML = "ClientX: %d ClientY: %d <br> Coord: %s".format(ev.clientX, ev.clientY, coord.toString)
 
-      game.check(Move(coord, player)) match {
+      game.check(Move(coord, player))(game.board.position) match {
         case Success(move) => {
-          game.make(move)
+          game.make(move)(game.board.position) // ugly, make game.board.position implicit?! 
           lastType = UNKNOWN
           boardCanvas.draw(game.board)
-          player = player match { case `BLACK` => WHITE; case `WHITE` => BLACK; case _ => player }
+          player = Game.opponent(player)
           alertTag.innerHTML = "ok"
         }
         case Failure(ex) => {

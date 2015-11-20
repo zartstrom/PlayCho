@@ -156,9 +156,9 @@ class BoardCanvas(canvas: html.Canvas, implicit val boardSize: BoardSize) {
   }
 
   def stones(board: Board): Unit = {
-    for (i <- 0 until board.stones.size) {
+    for (i <- 0 until board.position.size) {
       val c = board.getCoordByPoint(i)
-      stone(c, board.stones(i))
+      stone(c, board.position(i))
     }
   }
 

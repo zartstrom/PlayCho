@@ -15,10 +15,10 @@ class Coord(val x: Int, val y: Int)(implicit boardSize: BoardSize) {
   // implementation for hashCode and equals follows example in http://www.artima.com/pins1ed/object-equality.html
   // additionally, suppose there is only one invalid coord
   override def hashCode = if (this.isValid) 41 * (41 + x) + y else 0
-  override def equals(other: Any) = other match { 
+  override def equals(other: Any) = other match {
     // valid Coords have to have matching x and y, invalid Coords are all the same
     case that: Coord => if (this.isValid) this.x == that.x && this.y == that.y else that.isValid == this.isValid
-    case _ => false 
+    case _ => false
   }
 
   def toInt(): Int = {
@@ -40,7 +40,7 @@ class Coord(val x: Int, val y: Int)(implicit boardSize: BoardSize) {
       List(
         new Coord(x - 1, y), new Coord(x + 1, y),
         new Coord(x, y - 1), new Coord(x, y + 1)
-      ).filter(_.isValid) 
+      ).filter(_.isValid)
     } else { List() }
   }
 }
@@ -49,7 +49,7 @@ object Coord {
   implicit def toInt(c: Coord): Int = {
     c.toInt
   }
-  
+
   def apply(p: Int)(implicit boardSize: BoardSize): Coord = {
     val cx = p % boardSize.x
     val cy = p / boardSize.x
@@ -64,6 +64,8 @@ object Coord {
     val cy = boardSize.y - s.tail.toInt
     new Coord(cx, cy)
   }
+
+  val invalid = new Coord(-1, -1)(BoardSize(19, 19)) // actually boardSize does not matter, but uncool to use here :(
 }
 
 object Board {
@@ -80,15 +82,16 @@ object Board {
 }
 
 class Board(val boardSize: BoardSize) {
-  val stones = new Array[Int](boardSize.x * boardSize.y)
+  val position = new Array[Int](boardSize.x * boardSize.y)
   val marks = new Array[Int](boardSize.x * boardSize.y)
+  var ko = Coord.invalid
 
   def setStone(c: Coord, t: Int) {
-    stones(c) = t
+    position(c) = t
   }
 
   def getStone(coord: Coord): Int = {
-    if (coord.isValid) stones(coord) else Board.UNKNOWN
+    if (coord.isValid) position(coord) else Board.UNKNOWN
   }
 
   def getCoordByPoint(p: Int): Coord = {
