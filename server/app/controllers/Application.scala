@@ -24,10 +24,21 @@ object Application extends Controller {
     Ok("told him")
   }
 
-  def move = Action {
-    implicit val boardSize = BoardSize(9, 9) // need to get it from Client
-    Global.receptionist ! Move(Coord(3), Board.BLACK)
+  def move = Action(parse.json) { request =>
 
-    Ok("got it")
+    implicit val boardSize = BoardSize(9, 9) // need to get it from Client
+
+    val moveOpt = for {
+      c <- (request.body \ "coord").asOpt[String]
+      p <- (request.body \ "player").asOpt[Int]
+    } yield { Move(Coord(c), p) }
+    
+    moveOpt match {
+      case Some(m) => {
+        Global.receptionist ! m
+        Ok("it wooooorrrrrked!!!!")
+      }
+      case None => Ok("not Ok")  // TODO: 404 or something
+    }
   }
 }

@@ -1,10 +1,12 @@
 package ui
 
+import scala.util.{Try, Success, Failure}
+
 import scala.scalajs.js
 import js.annotation.JSExport
 import org.scalajs.dom
 import org.scalajs.dom.html
-import scala.util.{Try, Success, Failure}
+import org.scalajs.dom.ext.Ajax
 
 import Stones._
 import Const._
@@ -12,10 +14,9 @@ import shared._ // how to import just the package baduk 'import baduk' results i
 import shared.Board._
 
 
-//@JSExport
-//object JSBoard {
 object JSBoard extends js.JSApp {
-  //@JSExport
+  val jsonHeaders = Map("Accept" -> "application/json", "Content-Type" -> "application/json")
+
   def main(): Unit = {
     val canvas = dom.document.getElementById("mainCanvas").asInstanceOf[html.Canvas]
     implicit val boardSize = BoardSize(9, 9)
@@ -53,6 +54,7 @@ object JSBoard extends js.JSApp {
       game.check(Move(coord, player))(game.board.position) match {
         case Success(move) => {
           game.make(move)(game.board.position) // ugly, make game.board.position implicit?! 
+          Ajax.post("/moves", move.serialize, headers=jsonHeaders)
           lastType = UNKNOWN
           boardCanvas.draw(game.board)
           player = Game.opponent(player)
@@ -96,15 +98,8 @@ object JSBoard extends js.JSApp {
 
     // keep this for quick feedback:
     val bounds = canvas.getBoundingClientRect()
-    val paragraph = dom.document.createElement("p")
-    paragraph.innerHTML = "Height: %d Width: %d".format(bounds.height, bounds.width)
-    val q = dom.document.createElement("p")
-    q.innerHTML = "Top: %f, Right: %f, Bottom: %f, Left %f".format(bounds.top, bounds.right, bounds.bottom, bounds.left)
     dom.document.getElementById("footer").appendChild(alertTag)
-    dom.document.getElementById("footer").appendChild(paragraph)
-    dom.document.getElementById("footer").appendChild(q)
     dom.document.getElementById("footer").appendChild(coordsTag)
-    //dom.document.getElementById("footer").appendChild(bgImage)
   }
 }
 

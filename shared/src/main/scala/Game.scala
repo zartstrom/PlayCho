@@ -6,8 +6,22 @@ import math.abs
 import scala.util.Random
 import scala.util.{Try, Success, Failure}
 
+// TODO: Move it somewhere else
+//import org.json4s._
+//import org.json4s.native.JsonMethods._
+//import org.json4s.JsonDSL._
 
-case class Move(coord: Coord, player: Int)
+
+case class Move(coord: Coord, player: Int) {
+  // TODO: do this somewhere else / more cleanly
+  def serialize(): String = {
+    //val json = ("coord" -> coord.toString) ~ ("player" -> player.toString)
+    //compact(render(json))
+    """
+    {"coord": "%s", "player": %d}
+    """.format(coord.toString, player)  // yeah, this has no future - need to find good json library
+  }
+}
 
 
 object Game {
