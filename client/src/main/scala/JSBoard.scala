@@ -29,28 +29,26 @@ object JSBoard extends js.JSApp {
     var lastCoord = invalidCoord
     var lastType = UNKNOWN
 
-    def debug(): Unit = {
-      val stonesDiv = dom.document.getElementById("stones")
-      stonesDiv.innerHTML = ""
-      val p1 = dom.document.createElement("p")
-      p1.innerHTML = "last coord: %s; index: %d".format(lastCoord, lastCoord.toInt)
-      val p2 = dom.document.createElement("p")
-      p2.innerHTML = "x: %d; y: %d".format(lastCoord.x, lastCoord.y)
-      val p3 = dom.document.createElement("p")
-      p3.innerHTML = "stones: %s".format(game.board.position.toList.toString)
+    //def debug(): Unit = {
+    //  // remove stones div from board.scala.html; keep this debug method until xmas
+    //  val stonesDiv = dom.document.getElementById("stones")
+    //  stonesDiv.innerHTML = ""
+    //  val p1 = dom.document.createElement("p")
+    //  p1.innerHTML = "last coord: %s; index: %d".format(lastCoord, lastCoord.toInt)
+    //  val p2 = dom.document.createElement("p")
+    //  p2.innerHTML = "x: %d; y: %d".format(lastCoord.x, lastCoord.y)
+    //  val p3 = dom.document.createElement("p")
+    //  p3.innerHTML = "stones: %s".format(game.board.position.toList.toString)
 
-      for (p <- List(p1, p2)) { stonesDiv.appendChild(p) }
-    }
+    //  for (p <- List(p1, p2)) { stonesDiv.appendChild(p) }
+    //}
 
-    // add click listener
-    val coordsTag = dom.document.createElement("div")
-    coordsTag.innerHTML = "Click on the board to find about coords"
     val alertTag = dom.document.createElement("div")
     alertTag.innerHTML = "Alerts come here"
 
+    // add click listener
     def handleClickEvent(ev: dom.MouseEvent): Unit = {
       val coord = boardCanvas.getCoord(ev.clientX, ev.clientY)
-      coordsTag.innerHTML = "ClientX: %d ClientY: %d <br> Coord: %s".format(ev.clientX, ev.clientY, coord.toString)
 
       game.check(Move(coord, player))(game.board.position) match {
         case Success(move) => {
@@ -65,7 +63,7 @@ object JSBoard extends js.JSApp {
           alertTag.innerHTML = "illegal Move: %s".format(ex.getMessage)
         }
       }
-      debug()
+      //debug()
     }
     canvas.addEventListener("click", handleClickEvent _)
 
@@ -84,7 +82,7 @@ object JSBoard extends js.JSApp {
         game.board.setStone(c, semi)
       }
       boardCanvas.draw(game.board)
-      debug()
+      //debug()
     }
     canvas.addEventListener("mousemove", handleMousemoveEvent _)
 
@@ -93,14 +91,12 @@ object JSBoard extends js.JSApp {
       lastType = UNKNOWN
       lastCoord = invalidCoord
       boardCanvas.draw(game.board)
-      debug()
+      //debug()
     }
     canvas.addEventListener("mouseout", handleMouseoutEvent _)
 
     // keep this for quick feedback:
-    val bounds = canvas.getBoundingClientRect()
     dom.document.getElementById("footer").appendChild(alertTag)
-    dom.document.getElementById("footer").appendChild(coordsTag)
   }
 }
 

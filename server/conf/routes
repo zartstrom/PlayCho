@@ -24,3 +24,11 @@ POST    /think                      controllers.Application.think
 
 # javascriptRoutes
 GET     /javascriptRoutes           controllers.Application.javascriptRoutes
+
+
+# setup websocket
+# GET     /connect                    controllers.Application.startWS
+
+
+# sockets
+GET     /socket                     controllers.Application.socket

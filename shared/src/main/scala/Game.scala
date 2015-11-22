@@ -63,14 +63,6 @@ class Game(val board: Board, val komi: Double = 6.5) {
     i <- 0 until board.position.size
   } yield { (i -> Coord(i).neighbours.map(_.toInt)) }).toMap
 
-  def makeRandomMove(color: Int): Int = {
-    val lm = this.legalMoves(color)(board.position)
-    val r = Random
-    val move = lm(r.nextInt(lm.size))
-    this.make(move)(board.position)
-    move.coord
-  }
-
   def placeStone(move: Move)(position: Array[Int]) {
     position(move.coord) = move.player
   }
@@ -190,6 +182,14 @@ class Game(val board: Board, val komi: Double = 6.5) {
       p <- 0 until position.size
       move <- check(Move(Coord(p), player))(position).toOption
     } yield move
+  }
+
+  def randomMove(color: Int): Coord = {
+    val lm = this.legalMoves(color)(board.position)
+    val r = Random
+    val move = lm(r.nextInt(lm.size))
+    this.make(move)(board.position)
+    move.coord
   }
 
   def connComp(point: Int)(position: Array[Int]): List[Int] = {
