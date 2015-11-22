@@ -18,8 +18,9 @@ case class Move(coord: Coord, player: Int) {
     //val json = ("coord" -> coord.toString) ~ ("player" -> player.toString)
     //compact(render(json))
     """
-    {"coord": "%s", "player": %d}
-    """.format(coord.toString, player)  // yeah, this has no future - need to find good json library
+    {"coord": "%s", "sizeX": %d, "sizeY": %d, "player": %d}
+    """.format(coord.toString, coord.boardSize.x, coord.boardSize.y, player)
+    // yeah, this has no future - need to find good json library
   }
 }
 

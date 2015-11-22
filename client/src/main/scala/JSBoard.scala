@@ -21,6 +21,7 @@ object JSBoard extends js.JSApp {
     val canvas = dom.document.getElementById("mainCanvas").asInstanceOf[html.Canvas]
     implicit val boardSize = BoardSize(9, 9)
     val game = Game(boardSize)
+    Ajax.post("/games", boardSize.serialize, headers=jsonHeaders) // inform backend about new game
     val boardCanvas = new BoardCanvas(canvas, boardSize) // draws the empty board
 
     var player = BLACK

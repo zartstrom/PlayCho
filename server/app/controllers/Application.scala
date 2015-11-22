@@ -3,6 +3,7 @@ package controllers
 
 import akka.actor.Props
 import play.api.mvc._
+import play.api.routing.JavaScriptReverseRouter
 
 import global._
 
@@ -15,30 +16,55 @@ object Application extends Controller {
     Ok(views.html.board())
   }
 
-  //def testAkka(something: String) = Action(BodyParsers.parse.json) { request =>
-  def testAkka(something: String) = Action { request =>
+  def game = Action(parse.json) { request =>
 
-    val helloActor = Global.mySystem.actorOf(Props(new engine.HelloActor("Fred")), name = "helloactor")
-    helloActor ! engine.SimpleMessage(something)
+    // what about deserializing a BoardSize object?!
+    val boardSizeOpt = for {
+      x <- (request.body \ "sizeX").asOpt[Int]
+      y <- (request.body \ "sizeY").asOpt[Int]
+    } yield BoardSize(x, y)
 
-    Ok("told him")
+    boardSizeOpt match {
+      case Some(b) => {
+        Global.porter ! messages.NewGame(b)
+        Ok("create Board")
+      }
+      case None => BadRequest(<p>Missing value(s)</p>)
+    }
   }
 
   def move = Action(parse.json) { request =>
 
-    implicit val boardSize = BoardSize(9, 9) // need to get it from Client
-
+    // what about deserializing a Move object?!
     val moveOpt = for {
       c <- (request.body \ "coord").asOpt[String]
       p <- (request.body \ "player").asOpt[Int]
-    } yield { Move(Coord(c), p) }
-    
+      x <- (request.body \ "sizeX").asOpt[Int]
+      y <- (request.body \ "sizeY").asOpt[Int]
+    } yield { messages.NewMove(Move(Coord(c)(BoardSize(x, y)), p)) }  // think about that boardSize stuff
+
     moveOpt match {
       case Some(m) => {
-        Global.receptionist ! m
+        Global.porter ! m
         Ok("it wooooorrrrrked!!!!")
       }
-      case None => Ok("not Ok")  // TODO: 404 or something
+      case None => BadRequest(<p>Missing value(s)</p>)
     }
+  }
+
+  // javascript routes
+  def javascriptRoutes = Action { implicit request =>
+    Ok(
+      JavaScriptReverseRouter("jsRoutes")(
+        routes.javascript.Application.think
+      )
+    ).as("text/javascript")
+  }
+
+  // used when clicking button in board.scala.html
+  def think = Action { request =>
+    println("dflajdlfajlf")
+    Global.porter ! messages.StartThinking
+    Ok("told Engine to start thinking")
   }
 }

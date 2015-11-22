@@ -3,10 +3,12 @@ package shared
 import scala.language.implicitConversions
 
 
-case class BoardSize(x: Int, y: Int)
+case class BoardSize(x: Int, y: Int) {
+  def serialize(): String = { """{"sizeX": %d, "sizeY": %d}""".format(x, y) }
+}
 
 
-class Coord(val x: Int, val y: Int)(implicit boardSize: BoardSize) {
+class Coord(val x: Int, val y: Int)(implicit val boardSize: BoardSize) {
   def getIsValid(): Boolean = {
     x >= 0 && x < boardSize.x && y >= 0 && y < boardSize.y
   }

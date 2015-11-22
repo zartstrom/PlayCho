@@ -8,6 +8,6 @@ import play.api._
 object Global extends GlobalSettings {
 
   val mySystem = ActorSystem("moves")
-  val receptionist = mySystem.actorOf(Props(new engine.MoveReceiveActor()), name = "Dave")
+  val porter = mySystem.actorOf(Props(new actors.PorterActor()), name = "singletonGame")
 
 }
