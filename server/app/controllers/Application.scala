@@ -3,6 +3,7 @@ package controllers
 
 import akka.actor.Props
 import play.api.libs.iteratee.{Concurrent,Iteratee}
+import play.api.libs.json._
 import play.api.Logger
 import play.api.mvc._
 import play.api.Play.current
@@ -22,36 +23,42 @@ object Application extends Controller {
   def game = Action(parse.json) { request =>
 
     // what about deserializing a BoardSize object?!
-    val boardSizeOpt = for {
-      x <- (request.body \ "sizeX").asOpt[Int]
-      y <- (request.body \ "sizeY").asOpt[Int]
+    val boardSizeResult: JsResult[BoardSize] = for {
+      x <- (request.body \ "x").validate[Int]
+      y <- (request.body \ "y").validate[Int]
     } yield BoardSize(x, y)
 
-    boardSizeOpt match {
-      case Some(b) => {
+    boardSizeResult match {
+      case JsSuccess(b, _) => {
         Global.porter ! messages.NewGame(b)
-        Ok("create Board")
+        Ok("created game")
       }
-      case None => BadRequest(<p>Missing value(s)</p>)
+      case e: JsError => {
+        Logger.error("Could not create game: " + JsError.toJson(e).toString)
+        BadRequest(JsError.toJson(e))
+      }
     }
   }
 
   def move = Action(parse.json) { request =>
 
     // what about deserializing a Move object?!
-    val moveOpt = for {
-      c <- (request.body \ "coord").asOpt[String]
-      p <- (request.body \ "player").asOpt[Int]
-      x <- (request.body \ "sizeX").asOpt[Int]
-      y <- (request.body \ "sizeY").asOpt[Int]
-    } yield { messages.NewMove(Move(Coord(c)(BoardSize(x, y)), p)) }  // think about that boardSize stuff
+    val moveRes: JsResult[Move] = for {
+      c <- (request.body \ "coord" \ "string").validate[String]
+      x <- (request.body \ "coord" \ "x").validate[Int]
+      y <- (request.body \ "coord" \ "y").validate[Int]
+      p <- (request.body \ "player").validate[Int]
+    } yield { Move(Coord(c)(BoardSize(x, y)), p) }  // think about that boardSize stuff
 
-    moveOpt match {
-      case Some(m) => {
-        Global.porter ! m
-        Ok("it wooooorrrrrked!!!!")
+    moveRes match {
+      case JsSuccess(move, _) => {
+        Global.porter ! messages.NewMove(move)
+        Ok("received move")
       }
-      case None => BadRequest(<p>Missing value(s)</p>)
+      case e: JsError => {
+        Logger.error("Could not create move: " + JsError.toJson(e).toString)
+        BadRequest(JsError.toJson(e))
+      }
     }
   }
 
@@ -72,28 +79,7 @@ object Application extends Controller {
     Ok("told Engine to start thinking")
   }
 
-  def startWS = WebSocket.using[String] { request =>
-    Logger.info("set up web socket")
-    //Concurernt.broadcast returns (Enumerator, Concurrent.Channel)
-    val (out, channel) = Concurrent.broadcast[String]
-    //log the message to stdout and send response back to client
-
-    val in = Iteratee.foreach[String] {
-      //msg => println(msg)
-      msg => Logger.error(msg)
-      //the channel will push to the Enumerator
-      channel push("RESPONSE: " + msg)
-    }
-    (in, out)
-  }
-
   def socket = WebSocket.acceptWithActor[String, String] { request => out =>
-    // mySystem.actorOf(Props(new actors.MyWebSocketActor(out)), name = "socki")
-      Props(new actors.MyWebSocketActor(Global.porter, out))
-    //actors.MyWebSocketActor.props(out) //, "theSocket")
+    Props(new actors.MyWebSocketActor(Global.porter, out))
   }
-
-  //def socket = WebSocket.acceptWithActor[String, String] { request => out =>
-  //  actors.MyWebSocketActor.props(out)
-  //}
 }

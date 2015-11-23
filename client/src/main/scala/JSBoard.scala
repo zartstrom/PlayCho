@@ -7,6 +7,7 @@ import js.annotation.JSExport
 import org.scalajs.dom
 import org.scalajs.dom.html
 import org.scalajs.dom.ext.Ajax
+import upickle.default._
 
 import Stones._
 import Const._
@@ -21,7 +22,7 @@ object JSBoard extends js.JSApp {
     val canvas = dom.document.getElementById("mainCanvas").asInstanceOf[html.Canvas]
     implicit val boardSize = BoardSize(9, 9)
     val game = Game(boardSize)
-    Ajax.post("/games", boardSize.serialize, headers=jsonHeaders) // inform backend about new game
+    Ajax.post("/games", write(boardSize), headers=jsonHeaders) // inform backend about new game
     val boardCanvas = new BoardCanvas(canvas, boardSize) // draws the empty board
 
     var player = BLACK
@@ -53,7 +54,7 @@ object JSBoard extends js.JSApp {
       game.check(Move(coord, player))(game.board.position) match {
         case Success(move) => {
           game.make(move)(game.board.position) // ugly, make game.board.position implicit?! 
-          Ajax.post("/moves", move.serialize, headers=jsonHeaders)
+          Ajax.post("/moves", write(move), headers=jsonHeaders)
           lastType = UNKNOWN
           boardCanvas.draw(game.board)
           player = Game.opponent(player)

@@ -1,6 +1,10 @@
 package shared
 
+
 import scala.language.implicitConversions
+
+import upickle.default._
+import upickle.Js
 
 
 case class BoardSize(x: Int, y: Int) {
@@ -68,6 +72,15 @@ object Coord {
   }
 
   val invalid = new Coord(-1, -1)(BoardSize(19, 19)) // actually boardSize does not matter, but uncool to use here :(
+
+  // custom pickler - see http://lihaoyi.github.io/upickle-pprint/upickle/#CustomPicklers
+  implicit val coord2Writer = upickle.default.Writer[Coord]{
+    case c: Coord => Js.Obj(
+      ("string" -> Js.Str(c.toString)),
+      ("x" -> Js.Num(c.boardSize.x)),
+      ("y" -> Js.Num(c.boardSize.y))
+    )
+  }
 }
 
 object Board {
