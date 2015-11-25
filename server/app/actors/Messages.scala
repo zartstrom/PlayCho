@@ -1,15 +1,27 @@
-package messages
+package actors
 
 
 import shared.{BoardSize,Game,Move}
 
 
-case class NewGame(boardSize: BoardSize)
+object Msg {
 
-case class NewMove(move: Move)
+  case class NewGame(boardSize: BoardSize)
 
-case object StartThinking
+  case class NewMove(move: Move)
 
-case class StartEngine(game: Game)
+  case object StartThinking
 
-case class Simple(s: String)
+  case class StartEngine(game: Game)
+
+  case class Simple(s: String)
+
+  case object NewSocket
+
+  case class CurrentBestMove(coord: String)
+
+  case class GiveBestMove(game: Game)
+
+  case class PlayOut(game: Game, lastMove: Move)
+
+}

@@ -17,7 +17,7 @@ object MyWebSocketActor {
 class MyWebSocketActor(manager: ActorRef, out: ActorRef) extends Actor with ActorLogging {
   override def preStart(): Unit = {
     Logger.info("MyWebSocketActor: register myself at %s".format(manager.path.toString))
-    manager ! PorterActor.NewSocket
+    manager ! Msg.NewSocket
   }
 
   def receive = {
@@ -25,7 +25,7 @@ class MyWebSocketActor(manager: ActorRef, out: ActorRef) extends Actor with Acto
       Logger.info("Logger: websocket actor says hi")
       out ! ("We received your message, hohohohoho: " + msg)
     }
-    case PorterActor.CurrentBestMove(coord) => {
+    case Msg.CurrentBestMove(coord) => {
       out ! "Current best move: %s".format(coord)
     }
   }

@@ -6,22 +6,17 @@ import akka.actor._
 import shared.{Game,Move}
 
 
-object PorterActor {
-  case object NewSocket
-  case class CurrentBestMove(coord: String)
-}
-
 class PorterActor() extends Actor with ActorLogging {
   var gameOpt: Option[Game] = None // maybe store more games in the future
   var engineActorOpt: Option[ActorRef] = None
   var socketRefOpt: Option[ActorRef] = None
 
   def receive = {
-    case messages.NewGame(boardSize) => {
+    case Msg.NewGame(boardSize) => {
       gameOpt = Some(Game(boardSize))
       log.info("Created new game")
     }
-    case messages.NewMove(move) => {
+    case Msg.NewMove(move) => {
       log.info("Player %d played at %s".format(move.player, move.coord))
 
       gameOpt match {
@@ -33,7 +28,7 @@ class PorterActor() extends Actor with ActorLogging {
         } // do something about it
       }
     }
-    case messages.StartThinking => {
+    case Msg.StartThinking => {
       // create EngineActor if it does not exist
       log.info("starting thinking")
 
@@ -45,17 +40,17 @@ class PorterActor() extends Actor with ActorLogging {
       for {
         engineActor <- engineActorOpt
         game <- gameOpt
-      } yield { engineActor ! messages.StartEngine(game) }
+      } yield { engineActor ! Msg.StartEngine(game) }
     }
-    case PorterActor.NewSocket => {
+    case Msg.NewSocket => {
       log.info("setup new socket")
       socketRefOpt = Some(sender)
     }
-    case PorterActor.CurrentBestMove(coord) => {
+    case Msg.CurrentBestMove(coord) => {
       log.info("learn about the best move currently")
       // tell websocket something
       socketRefOpt match {
-        case Some(socket) => socket forward PorterActor.CurrentBestMove(coord)
+        case Some(socket) => socket forward Msg.CurrentBestMove(coord)
         case None => log.info("websocket not available")
       }
     }

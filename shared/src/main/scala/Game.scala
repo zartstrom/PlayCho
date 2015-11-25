@@ -48,7 +48,7 @@ object Game {
   }
 }
 
-class Game(val board: Board, val komi: Double = 6.5) {
+class Game(val board: Board, val komi: Double = 0.5) {
   // separated Board and Game classes; lets see how this plays out
   implicit val boardSize = board.boardSize
 
@@ -303,14 +303,16 @@ class Game(val board: Board, val komi: Double = 6.5) {
     counter.toMap
   }
 
-  def getScore(): Double = {
+  def score(): Double = {
     val territory = getCleanTerritory()
 
-    val blackTerritory = territory(Board.BLACK)
-    val whiteTerritory = territory(Board.WHITE)
+    // val blackTerritory = territory(Board.BLACK)
+    // val whiteTerritory = territory(Board.WHITE)
+    //val blackScore = blackTerritory + nofCaptured(Board.BLACK)
+    //val whiteScore = whiteTerritory + nofCaptured(Board.WHITE) + this.komi
 
-    val blackScore = blackTerritory + nofCaptured(Board.BLACK)
-    val whiteScore = whiteTerritory + nofCaptured(Board.WHITE) + this.komi
+    val blackScore = nofCaptured(Board.BLACK)
+    val whiteScore = nofCaptured(Board.WHITE) + this.komi
 
     blackScore - whiteScore
   }
