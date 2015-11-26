@@ -8,7 +8,6 @@ import scala.util.Random
 import shared.{Board,Coord,Game,Move}
 
 import main.Global.porter
-import messages.Simple
 
 
 class EngineActor() extends Actor with ActorLogging {
@@ -20,13 +19,16 @@ class EngineActor() extends Actor with ActorLogging {
       log.info("starting engine")
       // send another periodic tick after the specified delay
       loop = 0
-      system.scheduler.scheduleOnce(1000 millis, self, EngineActor.GiveBestMove(game))
+      system.scheduler.scheduleOnce(1000 millis, self, Msg.GiveBestMove(game))
     }
     case Msg.GiveBestMove(game) => {
-      val coord: Coord = game.randomMove(Board.BLACK)
-      log.info("give best move %s".format(coord.toString))
+      val move: Move = game.randomMove(Board.BLACK)
+      log.info("give best move %s".format(move.coord.toString))
 
-      porter ! Msg.CurrentBestMove(coord.toString)
+      val child = context.actorOf(Props[PlayOutActor])
+      child ! Msg.PlayOut(game, move)
+
+      porter ! Msg.CurrentBestMove(move.coord.toString)
       // loop
       loop += 1
       if (loop < 3) { system.scheduler.scheduleOnce(1000 millis, self, Msg.GiveBestMove(game)) }
@@ -38,33 +40,40 @@ class EngineActor() extends Actor with ActorLogging {
 class PlayOutActor() extends Actor with ActorLogging {
   
   def receive = {
-    case PlayOut(game, lastMove) => {
-      sender ! Msg.Result(playOut(game))
+    case Msg.PlayOut(game, lastMove) => {
+      log.info("play out game")
+      sender ! Msg.PlayOutResult(playOut(game, lastMove))
     }
+  }
 
-  def playOut(game, lastMove): score.Result = {
+  def playOut(game: Game, lastMove: Move): score.Result = {
     game.make(lastMove)(game.board.position)
 
-    val maxMoves: Int = game.board.boardSize.x * game.board.boardSize.y * 80 / 100
+    // determine the number of moves to play out. Later need a game termination criteria
+    val nofMoves: Int = 70 - game.moveNr
 
-    def helper: score.Result = {
-      if (game.moveNr < maxMoves) {
-        game.makeRandomMove()
-        helper
+    def helper(nofMoves: Int): score.Result = {
+      if (nofMoves > 0) {
+        log.info("player: %d, moveNr: %d".format(game.player, game.moveNr))
+        game.randomMove(game.player)
+        helper(nofMoves - 1)
       } else {
-        evaluate(game)  // Not a good way
+        val result = evaluate(game)  // Not a good way
+        log.info(result.toString)
+        result
       }
     }
 
-    helper
+    helper(nofMoves)
   }
 
-  def evaluate(game): score.Result = {
+  def evaluate(game: Game): score.Result = {
     // set komi to 0.5
+    log.info("score: %f".format(game.score))
     if (game.score > 0) {
-      Result(1, 0)
+      score.Result(1, 0)
     } else {
-      Result(0, 1)
+      score.Result(0, 1)
     }
   }
 }

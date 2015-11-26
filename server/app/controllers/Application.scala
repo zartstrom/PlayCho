@@ -12,6 +12,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 import main._
 import shared.{Board, BoardSize, Coord, Move}
+import actors.Msg
 
 
 object Application extends Controller {
@@ -30,7 +31,7 @@ object Application extends Controller {
 
     boardSizeResult match {
       case JsSuccess(b, _) => {
-        Global.porter ! messages.NewGame(b)
+        Global.porter ! Msg.NewGame(b)
         Ok("created game")
       }
       case e: JsError => {
@@ -52,7 +53,7 @@ object Application extends Controller {
 
     moveRes match {
       case JsSuccess(move, _) => {
-        Global.porter ! messages.NewMove(move)
+        Global.porter ! Msg.NewMove(move)
         Ok("received move")
       }
       case e: JsError => {
@@ -75,7 +76,7 @@ object Application extends Controller {
   // used when clicking button in board.scala.html
   def think = Action { request =>
     Logger.info("let me think about it")
-    Global.porter ! messages.StartThinking
+    Global.porter ! Msg.StartThinking
     Ok("told Engine to start thinking")
   }
 

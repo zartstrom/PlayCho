@@ -48,7 +48,7 @@ object Game {
   }
 }
 
-class Game(val board: Board, val komi: Double = 0.5) {
+class Game(val board: Board, val komi: Double = 0.5, var player: Int = Board.BLACK) {
   // separated Board and Game classes; lets see how this plays out
   implicit val boardSize = board.boardSize
 
@@ -184,12 +184,19 @@ class Game(val board: Board, val komi: Double = 0.5) {
     } yield move
   }
 
-  def randomMove(color: Int): Coord = {
-    val lm = this.legalMoves(color)(board.position)
+  def randomMove(player: Int): Move = {
+    val lm = this.legalMoves(player)(board.position)
     val r = Random
     val move = lm(r.nextInt(lm.size))
+    move
+  }
+
+  def makeRandomMove(player: Int): Move = {
+    val move = randomMove(player: Int)
     this.make(move)(board.position)
-    move.coord
+    this.player = Game.opponent(move.player)
+    this.moveNr += 1
+    move
   }
 
   def connComp(point: Int)(position: Array[Int]): List[Int] = {

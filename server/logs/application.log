@@ -1,10 +1,48 @@
-2015-11-24 00:33:57,982 [INFO] from play.core.server.NettyServer in pool-69-thread-4 - Listening for HTTP on /0:0:0:0:0:0:0:0:9000
-2015-11-24 00:34:05,535 [INFO] from play.api.Play in ForkJoinPool-2-worker-1 - Application started (Dev)
-2015-11-24 00:34:06,060 [INFO] from application in application-akka.actor.default-dispatcher-4 - let me think about it
-2015-11-24 00:34:06,221 [INFO] from application in application-akka.actor.default-dispatcher-3 - MyWebSocketActor: register myself at akka://moves/user/singletonGame
-2015-11-24 00:34:29,366 [INFO] from application in application-akka.actor.default-dispatcher-3 - MyWebSocketActor: register myself at akka://moves/user/singletonGame
-2015-11-24 00:34:29,369 [INFO] from application in application-akka.actor.default-dispatcher-5 - let me think about it
-2015-11-24 00:35:00,871 [INFO] from application in application-akka.actor.default-dispatcher-10 - MyWebSocketActor: register myself at akka://moves/user/singletonGame
-2015-11-24 00:35:00,880 [INFO] from application in application-akka.actor.default-dispatcher-3 - let me think about it
-2015-11-24 00:36:47,072 [INFO] from application in application-akka.actor.default-dispatcher-12 - MyWebSocketActor: register myself at akka://moves/user/singletonGame
-2015-11-24 00:36:47,078 [INFO] from application in application-akka.actor.default-dispatcher-13 - let me think about it
+2015-11-26 09:15:56,306 [INFO] from play.core.server.NettyServer in pool-4-thread-2 - Listening for HTTP on /0:0:0:0:0:0:0:0:9000
+2015-11-26 09:22:23,986 [ERROR] from application in New I/O worker #1 - 
+
+! @6o91hnnk7 - Internal server error, for (GET) [/] ->
+ 
+play.sbt.PlayExceptions$CompilationException: Compilation error[missing arguments for method helper;
+follow this method with `_' if you want to treat it as a partially applied function]
+	at play.sbt.PlayExceptions$CompilationException$.apply(PlayExceptions.scala:27) ~[na:na]
+	at play.sbt.PlayExceptions$CompilationException$.apply(PlayExceptions.scala:27) ~[na:na]
+	at scala.Option.map(Option.scala:145) ~[scala-library-2.11.7.jar:na]
+	at play.sbt.run.PlayReload$$anonfun$taskFailureHandler$1.apply(PlayReload.scala:49) ~[na:na]
+	at play.sbt.run.PlayReload$$anonfun$taskFailureHandler$1.apply(PlayReload.scala:44) ~[na:na]
+	at scala.Option.map(Option.scala:145) ~[scala-library-2.11.7.jar:na]
+	at play.sbt.run.PlayReload$.taskFailureHandler(PlayReload.scala:44) ~[na:na]
+	at play.sbt.run.PlayReload$.compileFailure(PlayReload.scala:40) ~[na:na]
+	at play.sbt.run.PlayReload$$anonfun$compile$1.apply(PlayReload.scala:17) ~[na:na]
+	at play.sbt.run.PlayReload$$anonfun$compile$1.apply(PlayReload.scala:17) ~[na:na]
+	at scala.util.Either$LeftProjection.map(Either.scala:377) ~[scala-library-2.11.7.jar:na]
+	at play.sbt.run.PlayReload$.compile(PlayReload.scala:17) ~[na:na]
+	at play.sbt.run.PlayRun$$anonfun$playRunTask$1$$anonfun$apply$2$$anonfun$apply$3$$anonfun$2.apply(PlayRun.scala:61) ~[na:na]
+	at play.sbt.run.PlayRun$$anonfun$playRunTask$1$$anonfun$apply$2$$anonfun$apply$3$$anonfun$2.apply(PlayRun.scala:61) ~[na:na]
+	at play.runsupport.Reloader$$anonfun$reload$1.apply(Reloader.scala:323) ~[na:na]
+	at play.runsupport.Reloader$$anon$3.run(Reloader.scala:43) ~[na:na]
+	at java.security.AccessController.doPrivileged(Native Method) ~[na:1.8.0_65]
+	at play.runsupport.Reloader$.play$runsupport$Reloader$$withReloaderContextClassLoader(Reloader.scala:39) ~[na:na]
+	at play.runsupport.Reloader.reload(Reloader.scala:321) ~[na:na]
+	at play.core.server.DevServerStart$$anonfun$mainDev$1$$anon$1$$anonfun$get$1.apply(DevServerStart.scala:113) ~[play-server_2.11-2.4.3.jar:2.4.3]
+	at play.core.server.DevServerStart$$anonfun$mainDev$1$$anon$1$$anonfun$get$1.apply(DevServerStart.scala:111) ~[play-server_2.11-2.4.3.jar:2.4.3]
+	at scala.concurrent.impl.Future$PromiseCompletingRunnable.liftedTree1$1(Future.scala:24) ~[scala-library-2.11.7.jar:na]
+	at scala.concurrent.impl.Future$PromiseCompletingRunnable.run(Future.scala:24) ~[scala-library-2.11.7.jar:na]
+	at java.util.concurrent.ForkJoinTask$RunnableExecuteAction.exec(ForkJoinTask.java:1402) ~[na:1.8.0_65]
+	at java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:289) ~[na:1.8.0_65]
+	at java.util.concurrent.ForkJoinPool$WorkQueue.runTask(ForkJoinPool.java:1056) ~[na:1.8.0_65]
+	at java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1692) ~[na:1.8.0_65]
+	at java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:157) ~[na:1.8.0_65]
+2015-11-26 09:23:03,282 [INFO] from play.api.Play in ForkJoinPool-1-worker-2 - Application started (Dev)
+2015-11-26 09:23:35,169 [INFO] from play.api.Play in application-akka.actor.default-dispatcher-5 - Application started (Dev)
+2015-11-26 09:23:42,848 [INFO] from application in application-akka.actor.default-dispatcher-5 - let me think about it
+2015-11-26 09:23:42,922 [INFO] from application in application-akka.actor.default-dispatcher-5 - MyWebSocketActor: register myself at akka://moves/user/singletonGame
+2015-11-26 09:25:04,622 [INFO] from play.api.Play in application-akka.actor.default-dispatcher-9 - Application started (Dev)
+2015-11-26 09:25:12,316 [INFO] from application in application-akka.actor.default-dispatcher-6 - let me think about it
+2015-11-26 09:25:12,335 [INFO] from application in application-akka.actor.default-dispatcher-2 - MyWebSocketActor: register myself at akka://moves/user/singletonGame
+2015-11-26 09:30:15,200 [INFO] from play.api.Play in application-akka.actor.default-dispatcher-10 - Application started (Dev)
+2015-11-26 09:30:22,232 [INFO] from application in application-akka.actor.default-dispatcher-6 - let me think about it
+2015-11-26 09:30:22,245 [INFO] from application in application-akka.actor.default-dispatcher-3 - MyWebSocketActor: register myself at akka://moves/user/singletonGame
+2015-11-26 09:30:56,794 [INFO] from play.api.Play in application-akka.actor.default-dispatcher-7 - Application started (Dev)
+2015-11-26 09:31:06,503 [INFO] from application in application-akka.actor.default-dispatcher-7 - let me think about it
+2015-11-26 09:31:06,547 [INFO] from application in application-akka.actor.default-dispatcher-4 - MyWebSocketActor: register myself at akka://moves/user/singletonGame
