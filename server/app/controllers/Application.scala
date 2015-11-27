@@ -8,6 +8,8 @@ import play.api.Logger
 import play.api.mvc._
 import play.api.Play.current
 import play.api.routing.JavaScriptReverseRouter
+// do not use ExecutionContext like this. See
+// https://github.com/alexandru/scala-best-practices/blob/master/sections/4-concurrency-parallelism.md#411-must-not-hardcode-the-thread-pool--execution-context
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import main._

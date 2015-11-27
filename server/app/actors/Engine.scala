@@ -50,12 +50,12 @@ class PlayOutActor() extends Actor with ActorLogging {
     game.make(lastMove)(game.board.position)
 
     // determine the number of moves to play out. Later need a game termination criteria
-    val nofMoves: Int = 70 - game.moveNr
+    val nofMoves: Int = 76 - game.moveNr
 
     def helper(nofMoves: Int): score.Result = {
       if (nofMoves > 0) {
         log.info("player: %d, moveNr: %d".format(game.player, game.moveNr))
-        game.randomMove(game.player)
+        game.makeRandomMove(game.player)
         helper(nofMoves - 1)
       } else {
         val result = evaluate(game)  // Not a good way

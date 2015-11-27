@@ -170,7 +170,8 @@ class Game(val board: Board, val komi: Double = 0.5, var player: Int = Board.BLA
     // remove captured stones
     placeStones(captured, Board.EMPTY)(position)
 
-    this.moveNr += 1
+    // count moves up here seems to be an error. Only when use board.position
+    //this.moveNr += 1
   }
 
   def makeMs(ms: List[Move]) {
