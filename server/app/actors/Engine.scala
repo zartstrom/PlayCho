@@ -22,16 +22,22 @@ class EngineActor() extends Actor with ActorLogging {
       system.scheduler.scheduleOnce(1000 millis, self, Msg.GiveBestMove(game))
     }
     case Msg.GiveBestMove(game) => {
-      val move: Move = game.randomMove(Board.BLACK)
-      log.info("give best move %s".format(move.coord.toString))
 
-      val child = context.actorOf(Props[PlayOutActor])
-      child ! Msg.PlayOut(game, move)
-
-      porter ! Msg.CurrentBestMove(move.coord.toString)
-      // loop
-      loop += 1
-      if (loop < 3) { system.scheduler.scheduleOnce(1000 millis, self, Msg.GiveBestMove(game)) }
+      // TODO: make this nice
+      game.randomMove(Board.BLACK) match {
+        case Some(move) => {
+          log.info("give best move %s".format(move.coord.toString))
+          val child = context.actorOf(Props[PlayOutActor])
+          child ! Msg.PlayOut(game, move)
+          porter ! Msg.CurrentBestMove(move.coord.toString)
+          // loop
+          loop += 1
+          if (loop < 3) { system.scheduler.scheduleOnce(1000 millis, self, Msg.GiveBestMove(game)) }
+        }
+        case None => {
+          log.info("No move available")
+        }
+      }
     }
   }
 }
@@ -43,6 +49,7 @@ class PlayOutActor() extends Actor with ActorLogging {
     case Msg.PlayOut(game, lastMove) => {
       log.info("play out game")
       sender ! Msg.PlayOutResult(playOut(game, lastMove))
+      context stop self
     }
   }
 

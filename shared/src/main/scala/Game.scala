@@ -185,19 +185,27 @@ class Game(val board: Board, val komi: Double = 0.5, var player: Int = Board.BLA
     } yield move
   }
 
-  def randomMove(player: Int): Move = {
-    val lm = this.legalMoves(player)(board.position)
-    val r = Random
-    val move = lm(r.nextInt(lm.size))
-    move
+  def randomMove(player: Int): Option[Move] = {
+    val moves = this.legalMoves(player)(board.position)
+
+    if (moves.size > 0) {
+      val rand = Random
+      Some(moves(rand.nextInt(moves.size)))
+    } else {
+      None
+    }
   }
 
-  def makeRandomMove(player: Int): Move = {
-    val move = randomMove(player: Int)
-    this.make(move)(board.position)
-    this.player = Game.opponent(move.player)
+  def makeRandomMove(player: Int): Option[Move] = {
+    this.player = Game.opponent(player)
     this.moveNr += 1
-    move
+    randomMove(player) match {
+      case Some(move) => {
+        this.make(move)(board.position)
+        Some(move)
+      }
+      case None => None  // it is a pass
+    }
   }
 
   def connComp(point: Int)(position: Array[Int]): List[Int] = {
