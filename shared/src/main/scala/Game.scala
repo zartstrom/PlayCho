@@ -6,23 +6,8 @@ import math.abs
 import scala.util.Random
 import scala.util.{Try, Success, Failure}
 
-// TODO: Move it somewhere else
-//import org.json4s._
-//import org.json4s.native.JsonMethods._
-//import org.json4s.JsonDSL._
 
-
-case class Move(coord: Coord, player: Int) {
-  // TODO: do this somewhere else / more cleanly
-  def serialize(): String = {
-    //val json = ("coord" -> coord.toString) ~ ("player" -> player.toString)
-    //compact(render(json))
-    """
-    {"coord": "%s", "sizeX": %d, "sizeY": %d, "player": %d}
-    """.format(coord.toString, coord.boardSize.x, coord.boardSize.y, player)
-    // yeah, this has no future - need to find good json library
-  }
-}
+case class Move(coord: Coord, player: Int)
 
 
 object Game {
@@ -81,26 +66,30 @@ class Game(val board: Board, val komi: Double = 0.5, var player: Int = Board.BLA
     for(p <- coords) { placeStone(Move(Coord(p), player))(position) }
   }
 
-  def isCapture(move: Move)(position: Array[Int]): Boolean = {
+  def isCapture(move: Move, position: Array[Int]): Boolean = {
     val enemies = neighbours(move.coord) filter ( x => { val p = position(x);  p != move.player && p != Board.EMPTY } )
     //println("enemies: %s".format(enemies))
-    val liberties = enemies map ( getLiberties(_)(position).size )
+    val enemyLiberties = enemies map ( liberties(_)(position).size )
     //println("liberties: %s".format(liberties))
-    val killedNeighbors = liberties filter ( _ == 1 )
+    val killedNeighbors = enemyLiberties filter ( _ == 1 )
 
     killedNeighbors.size > 0
   }
 
-  def isSuicide(move: Move)(position: Array[Int]): Boolean = {
-    val isCapture: Boolean = this.isCapture(move)(position)
+  def isCapture(move: Move): Boolean = isCapture(move, board.position)
+
+  def isSuicide(move: Move, position: Array[Int]): Boolean = {
+    val isCapture: Boolean = this.isCapture(move, position)
     //println("isCapture: %s".format(isCapture.toString))
 
     if (isCapture) { false } else {
       val peek = position.clone
       placeStone(move)(peek)
-      getLiberties(move.coord)(peek).size == 0
+      liberties(move.coord)(peek).size == 0
     }
   }
+
+  def isSuicide(move: Move): Boolean = isSuicide(move, board.position)
 
   def isEmptyPoint(move: Move)(position: Array[Int]): Try[Boolean] = {
     if (position(move.coord) != Board.BLACK && position(move.coord) != Board.WHITE) {
@@ -110,13 +99,13 @@ class Game(val board: Board, val komi: Double = 0.5, var player: Int = Board.BLA
 
   // make this snippet smarter
   def isNotSuicide(move: Move)(position: Array[Int]): Try[Boolean] = {
-    val isCapture: Boolean = this.isCapture(move)(position)
+    val isCapture: Boolean = this.isCapture(move, position)
     //println("isCapture: %s".format(isCapture.toString))
 
     if (isCapture) { Success(true) } else {
       val peek = position.clone
       placeStone(move)(peek)
-      if (getLiberties(move.coord)(peek).size == 0) {
+      if (liberties(move.coord)(peek).size == 0) {
         Failure(new Exception("Suicide is not allowed"))
       } else Success(true)
     }
@@ -126,7 +115,7 @@ class Game(val board: Board, val komi: Double = 0.5, var player: Int = Board.BLA
     if (koCoord != move.coord) { Success(true) } else Failure(new Exception("Cannot retake ko immediately"))
   }
 
-  def check(move: Move)(position: Array[Int]): Try[Move] = {
+  def check(move: Move, position: Array[Int]): Try[Move] = {
     for {
       _ <- isEmptyPoint(move)(position)
       _ <- isNotSuicide(move)(position)
@@ -134,7 +123,7 @@ class Game(val board: Board, val komi: Double = 0.5, var player: Int = Board.BLA
     } yield move
   }
 
-  //def check(move: Move): Try[Move] = { check(move, board.position) }
+  def check(move: Move): Try[Move] = check(move, board.position)
 
   def isEnemyStone(player: Int, color: Int): Boolean = {
     color != player && color != Board.EMPTY
@@ -149,10 +138,10 @@ class Game(val board: Board, val komi: Double = 0.5, var player: Int = Board.BLA
   def capturedStones(move: Move)(position: Array[Int]): List[Int] = {
     val enemies = neighbours(move.coord) filter ( x => isEnemyStone(move.player, position(x)) )
     // == 0 because move was executed by now
-    ( enemies filter ( getLiberties(_)(position).size == 0 ) flatMap ( x => connComp(x)(position) ) ).distinct
+    ( enemies filter ( liberties(_)(position).size == 0 ) flatMap ( x => connComp(x)(position) ) ).distinct
   }
 
-  def make(move: Move)(position: Array[Int]) {
+  def make(move: Move, position: Array[Int]): Unit = {
     // Assume check for validity took place if needed.
     // Otherwise illegal positions may occur, which may be alright when setting up a position
 
@@ -174,19 +163,23 @@ class Game(val board: Board, val komi: Double = 0.5, var player: Int = Board.BLA
     //this.moveNr += 1
   }
 
-  def makeMs(ms: List[Move]) {
-    for(m <- ms) yield { make(m)(board.position) }
+  def make(move: Move): Unit = make(move, board.position)
+
+  def makeMoves(ms: List[Move]) {
+    for(m <- ms) yield { make(m) }
   }
 
-  def legalMoves(player: Int)(position: Array[Int]): IndexedSeq[Move] = {
+  def legalMoves(player: Int, position: Array[Int]): IndexedSeq[Move] = {
     for {
       p <- 0 until position.size
-      move <- check(Move(Coord(p), player))(position).toOption
+      move <- check(Move(Coord(p), player), position).toOption
     } yield move
   }
 
+  def legalMoves(player: Int): IndexedSeq[Move] = legalMoves(player, board.position)
+
   def randomMove(player: Int): Option[Move] = {
-    val moves = this.legalMoves(player)(board.position)
+    val moves = this.legalMoves(player, board.position)
 
     if (moves.size > 0) {
       val rand = Random
@@ -201,7 +194,7 @@ class Game(val board: Board, val komi: Double = 0.5, var player: Int = Board.BLA
     this.moveNr += 1
     randomMove(player) match {
       case Some(move) => {
-        this.make(move)(board.position)
+        this.make(move)
         Some(move)
       }
       case None => None  // it is a pass
@@ -237,7 +230,7 @@ class Game(val board: Board, val komi: Double = 0.5, var player: Int = Board.BLA
   //  connComp(point)(board.position)
   //}
 
-  def getLiberties(point: Int)(position: Array[Int]): List[Int] = {
+  def liberties(point: Int)(position: Array[Int]): List[Int] = {
     // have to check for BLACK and WHITE positively
     // check for not EMPTY fails by hover stones SEMI_BLACK, SEMI_WHITE
     // thats quite stupid; broken by design, etc..
@@ -248,13 +241,13 @@ class Game(val board: Board, val komi: Double = 0.5, var player: Int = Board.BLA
     { connComp(point)(position) flatMap ( neighbours(_) filter isLiberty ) }.distinct
   }
 
-  //def getLiberties(point: Int): List[Int] = {
-  //  getLiberties(point)(board.position)
+  //def liberties(point: Int): List[Int] = {
+  //  liberties(point)(board.position)
   //}
 
-  def getLiberties(s: String)(position: Array[Int]): List[Int] = {
+  def liberties(s: String): List[Int] = {
     // A1 -> `liberties`
-    getLiberties(Coord(s))(board.position)
+    liberties(Coord(s))(board.position)
   }
 
   def connComps(color: Int = Board.EMPTY): List[IndexedSeq[Int]] = {

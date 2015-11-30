@@ -31,7 +31,8 @@ lazy val shared = (crossProject.crossType(CrossType.Pure) in file("shared")).
   settings(
     scalaVersion := scalaV,
     libraryDependencies ++= Seq(
-      "com.lihaoyi" %%% "upickle" % "0.3.6"
+      "com.lihaoyi" %%% "upickle" % "0.3.6",
+      "org.scalatest" % "scalatest_2.11" % "2.2.4" % "test"
     )
   ).
   jsConfigure(_ enablePlugins ScalaJSPlay)

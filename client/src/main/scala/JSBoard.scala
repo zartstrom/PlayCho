@@ -51,7 +51,7 @@ object JSBoard extends js.JSApp {
     def handleClickEvent(ev: dom.MouseEvent): Unit = {
       val coord = boardCanvas.getCoord(ev.clientX, ev.clientY)
 
-      game.check(Move(coord, player))(game.board.position) match {
+      game.check(Move(coord, player)) match {
         case Success(move) => {
           game.make(move)(game.board.position) // ugly, make game.board.position implicit?! 
           Ajax.post("/moves", write(move), headers=jsonHeaders)
