@@ -9,4 +9,14 @@ case class Result(blackWins: Int, whiteWins: Int) {
       case _ => "Black - White: %d - %d".format(blackWins, whiteWins)
     }
   }
+
+  def record = blackWins - whiteWins
+
+  def +(other: Result): Result = {
+    Result(this.blackWins + other.blackWins, this.whiteWins + other.whiteWins)
+  }
+
+  def >(other: Result): Boolean = {
+    this.record > other.record
+  }
 }

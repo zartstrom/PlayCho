@@ -21,7 +21,7 @@ class PorterActor() extends Actor with ActorLogging {
 
       gameOpt match {
         case Some(game) => {
-          game.make(move)(game.board.position) // ugly, make game.board.position implicit?! 
+          game.make(move)
         }
         case None => {
           log.error("No game available")

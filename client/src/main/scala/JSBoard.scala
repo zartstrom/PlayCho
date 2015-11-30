@@ -20,7 +20,7 @@ object JSBoard extends js.JSApp {
 
   def main(): Unit = {
     val canvas = dom.document.getElementById("mainCanvas").asInstanceOf[html.Canvas]
-    implicit val boardSize = BoardSize(9, 9)
+    implicit val boardSize = BoardSize(5, 5)
     val game = Game(boardSize)
     Ajax.post("/games", write(boardSize), headers=jsonHeaders) // inform backend about new game
     val boardCanvas = new BoardCanvas(canvas, boardSize) // draws the empty board
@@ -53,7 +53,7 @@ object JSBoard extends js.JSApp {
 
       game.check(Move(coord, player)) match {
         case Success(move) => {
-          game.make(move)(game.board.position) // ugly, make game.board.position implicit?! 
+          game.make(move)
           Ajax.post("/moves", write(move), headers=jsonHeaders)
           lastType = UNKNOWN
           boardCanvas.draw(game.board)

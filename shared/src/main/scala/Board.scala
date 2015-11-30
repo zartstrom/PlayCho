@@ -23,11 +23,17 @@ object Board {
   val MIXED = -1
   val UNKNOWN = -2
 
+  def clone(board: Board): Board = {
+    val copy = new Board(board.boardSize)
+    Array.copy(board.position, 0, copy.position, 0, board.position.size) 
+    copy.ko = board.ko
+    copy
+  }
 }
 
 class Board(val boardSize: BoardSize) {
   val position = new Array[Int](boardSize.x * boardSize.y)
-  val marks = new Array[Int](boardSize.x * boardSize.y)
+  val marks = new Array[Int](boardSize.x * boardSize.y)  // do I need marks?
   var ko = Coord.invalid
 
   def setStone(c: Coord, t: Int) {

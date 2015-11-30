@@ -7,7 +7,15 @@ import scala.util.Random
 import scala.util.{Try, Success, Failure}
 
 
-case class Move(coord: Coord, player: Int)
+case class Move(coord: Coord, player: Int) {
+  // implementation for hashCode and equals follows example in http://www.artima.com/pins1ed/object-equality.html
+  // additionally, suppose there is only one invalid coord
+  override def hashCode = coord.hashCode * 41 + player
+  override def equals(other: Any) = other match {
+    case that: Move => this.coord == that.coord && this.player == that.player
+    case _ => false
+  }
+}
 
 
 object Game {
@@ -31,22 +39,47 @@ object Game {
   def opponent(player: Int): Int = {
     player match { case `BLACK` => WHITE; case `WHITE` => BLACK; case _ => player }
   }
+
+  import scala.collection.mutable.{Map => Dict}
+  val neighbourMaps = Dict.empty[BoardSize, Map[Int, List[Int]]]
+
+  // memoized function
+  // returns neighbours (in coords: "F3" -> List("E3", "F2", "G3", "F4") for a given boardsize
+  def universalNeighbours(boardSize: BoardSize): Map[Int, List[Int]] = {
+    def f(boardSize: BoardSize): Map[Int, List[Int]] = {
+      println("Cache miss: %s".format(boardSize.toString))
+      (
+        for { i <- 0 until boardSize.x * boardSize.y }
+        yield { (i -> Coord(i)(boardSize).neighbours.map(_.toInt)) }
+      ).toMap
+    }
+    neighbourMaps.getOrElseUpdate(boardSize, f(boardSize))
+  }
+
+  def clone(game: Game): Game = {
+    // copy board as well
+    val copy = new Game(Board.clone(game.board), game.komi, game.player)
+    copy.nextMoveNr = game.nextMoveNr
+    copy.nofCaptured = game.nofCaptured.clone()
+    copy
+  }
 }
 
 class Game(val board: Board, val komi: Double = 0.5, var player: Int = Board.BLACK) {
   // separated Board and Game classes; lets see how this plays out
   implicit val boardSize = board.boardSize
 
-  var moveNr = 0
+  var nextMoveNr = 1
   var nofCaptured = HashMap(Board.BLACK -> 0, Board.WHITE -> 0)
 
   // keep it for later!
   //val displayer = new TerminalDisplay(this.size)
   //def display { this.displayer.display(board.position) }
 
-  val neighbours: Map[Int, List[Int]] = (for {
-    i <- 0 until board.position.size
-  } yield { (i -> Coord(i).neighbours.map(_.toInt)) }).toMap
+  //val neighbours: Map[Int, List[Int]] = (for {
+  //  i <- 0 until board.position.size
+  //} yield { (i -> Coord(i).neighbours.map(_.toInt)) }).toMap
+  lazy val neighbours = Game.universalNeighbours(boardSize)
 
   def placeStone(move: Move)(position: Array[Int]) {
     position(move.coord) = move.player
@@ -159,8 +192,9 @@ class Game(val board: Board, val komi: Double = 0.5, var player: Int = Board.BLA
     // remove captured stones
     placeStones(captured, Board.EMPTY)(position)
 
-    // count moves up here seems to be an error. Only when use board.position
-    //this.moveNr += 1
+    // count moves up here seems to be an error. Only when use board.position. Remove more state from this Game class
+    this.nextMoveNr += 1
+    this.player = Game.opponent(player)
   }
 
   def make(move: Move): Unit = make(move, board.position)
@@ -190,8 +224,6 @@ class Game(val board: Board, val komi: Double = 0.5, var player: Int = Board.BLA
   }
 
   def makeRandomMove(player: Int): Option[Move] = {
-    this.player = Game.opponent(player)
-    this.moveNr += 1
     randomMove(player) match {
       case Some(move) => {
         this.make(move)

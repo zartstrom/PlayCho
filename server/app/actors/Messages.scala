@@ -24,6 +24,6 @@ object Msg {
 
   case class PlayOut(game: Game, lastMove: Move)
 
-  case class PlayOutResult(result: score.Result)
+  case class PlayedOutResult(move: Move, result: score.Result)
 
 }
