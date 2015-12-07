@@ -7,7 +7,7 @@ import scala.util.Random
 import scala.collection.immutable.ListMap
 
 import shared.{Board,Coord,Game,Move}
-import score.Result
+import score.{Result,TrompTaylor}
 
 import main.Global.porter
 
@@ -35,15 +35,25 @@ class EngineActor() extends Actor with ActorLogging {
       context become active(emptyResult)
 
       // send another periodic tick after the specified delay
-      system.scheduler.scheduleOnce(3000 millis, self, Msg.GiveBestMove(game))
+      system.scheduler.scheduleOnce(8000 millis, self, Msg.GiveBestMove(game))
     }
     case Msg.PlayedOutResult(move, result) => {
       // does scalaz have an operator for this?!
       context become active( currentResult + (move -> (currentResult(move) + result)) )
     }
     case Msg.GiveBestMove(game) => {
-      val bestMoves = ListMap(currentResult.toSeq.sortWith(_._2 > _._2):_*)
-      log.info("Result: %s".format(bestMoves))
+
+      val bestMoves = if (game.player == Board.BLACK) {
+        ListMap(currentResult.toSeq.sortWith(_._2 > _._2 ):_*)
+      } else { // Board.WHITE
+        ListMap(currentResult.toSeq.sortWith(_._2 < _._2 ):_*)
+      }
+
+      log.info("Result: %s".format(bestMoves take 5))
+
+      val bestMove = bestMoves.head._1
+
+      porter ! Msg.CurrentBestMove(bestMove.coord.toString)
     }
 
       // TODO: make this nice
@@ -78,7 +88,7 @@ class PlayOutActor() extends Actor with ActorLogging {
     game.make(lastMove)
 
     // determine the number of moves to play out. Later need a game termination criteria
-    val nofMoves: Int = 18 - game.nextMoveNr
+    val nofMoves: Int = 19 - game.nextMoveNr
 
     def helper(nofMoves: Int): score.Result = {
       if (nofMoves > 0) {
@@ -97,11 +107,14 @@ class PlayOutActor() extends Actor with ActorLogging {
 
   def evaluate(game: Game): score.Result = {
     // set komi to 0.5
-    log.info("score: %f".format(game.score))
-    if (game.score > 0) {
+    val gameScore = TrompTaylor.score(game) 
+    log.info("score: %f".format(gameScore))
+    if (gameScore > 0) {
       score.Result(1, 0)
-    } else {
+    } else if(gameScore < 0) {
       score.Result(0, 1)
+    } else {
+      score.Result(0.5, 0.5)
     }
   }
 }
