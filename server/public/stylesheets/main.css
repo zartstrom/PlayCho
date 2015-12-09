@@ -3,5 +3,7 @@ body { text-align: center; }
 
 div { margin: 20px auto; color: #888; }
 
-#boardWrapper { display: inline-block; }
+#boardWrapper, #sidebar {display: inline-block; *display: inline; zoom: 1; vertical-align: top}
+
+#sidebar { width: 200px; padding-top: 60px }
 

@@ -3,11 +3,11 @@ package actors
 
 import akka.actor._
 import scala.concurrent.duration._
-import scala.util.Random
 import scala.collection.immutable.ListMap
 
 import shared.{Board,Coord,Game,Move}
 import score.{Result,TrompTaylor}
+import baduk.RandomPlayer
 
 import main.Global.porter
 
@@ -27,13 +27,14 @@ class EngineActor() extends Actor with ActorLogging {
   def active(currentResult: Map[Move, Result]): Receive = {
     case Msg.StartEngine(game: Game) => {
       log.info("starting engine")
+      val legalMoves = game.legalMoves(game.player) 
 
-      val emptyResult = (game.legalMoves(game.player) map ( move => (move -> Result(0, 0)) )).toMap
+      val emptyResult = (legalMoves map ( move => (move -> Result(0, 0)) )).toMap
 
 
       for {
-        move <- game.legalMoves(game.player) //take 1
-        i <- (0 until 100)
+        i <- (0 until 1)
+        move <- legalMoves take 1
       } yield {
         val child = context.actorOf(Props[PlayOutActor])
         child ! Msg.PlayOut(Game.clone(game), move)
@@ -68,7 +69,7 @@ class EngineActor() extends Actor with ActorLogging {
     } else { // Board.WHITE
       ListMap(currentResult.toSeq.sortWith(_._2 < _._2 ):_*)
     }
-    }
+  }
 }
 
 
@@ -76,7 +77,7 @@ class PlayOutActor() extends Actor with ActorLogging {
 
   def receive = {
     case Msg.PlayOut(game, lastMove) => {
-      log.info("play out game")
+      //log.info("play out game")
       sender ! Msg.PlayedOutResult(lastMove, playOut(game, lastMove))
       context stop self
     }
@@ -86,28 +87,36 @@ class PlayOutActor() extends Actor with ActorLogging {
     // copy the game somehow
     log.info("First move of variant: %s".format(lastMove))
     game.make(lastMove)
+    val randomPlayer = new RandomPlayer(game)
+
+    log.info("%d".format(game.moveNr))
+    while (game.terminated == false) {
+      randomPlayer.play()
+      log.info("%d".format(game.moveNr))
+    }
+    val result = evaluate(game)  // Not a good way
+    result
 
     // determine the number of moves to play out. Later need a game termination criteria
-    val nofMoves: Int = 19 - game.moveNr
+    //val nofMoves: Int = 19 - game.moveNr
 
-    def helper(nofMoves: Int): score.Result = {
-      if (nofMoves > 0) {
-        val moveOpt = game.makeRandomMove(game.player)
-        //log.debug(moveOpt.get.toString)
-        helper(nofMoves - 1)
-      } else {
-        val result = evaluate(game)  // Not a good way
-        log.info(result.toString)
-        result
-      }
-    }
-
-    helper(nofMoves)
+    //def helper(nofMoves: Int): score.Result = {
+    //  if (nofMoves > 0) {
+    //    val moveOpt = game.makeRandomMove(game.player)
+    //    //log.debug(moveOpt.get.toString)
+    //    helper(nofMoves - 1)
+    //  } else {
+    //    val result = evaluate(game)  // Not a good way
+    //    //log.info(result.toString)
+    //    result
+    //  }
+    //}
+    //helper(nofMoves)
   }
 
   def evaluate(game: Game): score.Result = {
     // set komi to 0.5
-    val gameScore = TrompTaylor.score(game) 
+    val gameScore = TrompTaylor.score(game)
     log.info("score: %f".format(gameScore))
     if (gameScore > 0) {
       score.Result(1, 0)

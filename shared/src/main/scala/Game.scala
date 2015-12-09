@@ -161,12 +161,17 @@ class Game(val board: Board, val komi: Double = 0.5, var player: Int = Board.BLA
     }
 
     this.moveNr += 1
+    if (this.moveNr > 400) {
+      //Logger.error("Game has more than 400 moves, terminate condition is lousy")
+      this.terminated = true
+    }
     this.player = Game.opponent(player)
   }
 
   def makePass(): Unit = {
+    println("PASS!!!!")
     board.ko = Coord.invalid // not DRY
-    this.terminated = (this.moveNr - 1) == this.lastPass
+    this.terminated = (this.moveNr - 1) <= this.lastPass
     this.lastPass = this.moveNr
   }
 
@@ -202,27 +207,6 @@ class Game(val board: Board, val komi: Double = 0.5, var player: Int = Board.BLA
   }
 
   def legalMoves(player: Int): IndexedSeq[Move] = legalMoves(player, board.position)
-
-  def randomMove(player: Int): Play = {
-    val moves = this.legalMoves(player, board.position)
-
-    if (moves.size > 0) {
-      val rand = Random
-      moves(rand.nextInt(moves.size))
-    } else {
-      Pass
-    }
-  }
-
-  def makeRandomMove(player: Int): Play = {
-    randomMove(player) match {
-      case move: Move => {
-        this.make(move)
-        move
-      }
-      case Pass => Pass
-    }
-  }
 
   def connComp(point: Int)(position: Array[Int]): List[Int] = {
     // get connected component of stones or territory

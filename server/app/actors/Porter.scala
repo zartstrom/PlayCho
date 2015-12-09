@@ -63,7 +63,11 @@ class PorterActor() extends Actor with ActorLogging {
     case PorterActor.ForwardBestMoves(bestMoves) => {
       log.info("Porter forwards best moves")
       socketRefOpt match {
-        case Some(socket) => socket ! WebSocketActor.ForwardBestMoves(bestMoves)
+        case Some(socket) => {
+          log.info("telling WebSocket something")
+          socket forward WebSocketActor.ForwardBestMoves(bestMoves)
+          //socket ! "bulls"
+        }
         case None => log.info("websocket not available")
       }
     }

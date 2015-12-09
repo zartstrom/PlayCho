@@ -39,7 +39,7 @@ class WebSocketActor(manager: ActorRef, out: ActorRef) extends Actor with ActorL
       out ! "Current best move: %s".format(coord)
     }
     case WebSocketActor.ForwardBestMoves(bestMoves) => {
-      log.info("WebSocket forwards best moves")
+      Logger.info("WebSocket forwards best moves")
       // toJson
       def f(ab: (Move, Result)): JsValue = {
         ab match {
@@ -48,12 +48,14 @@ class WebSocketActor(manager: ActorRef, out: ActorRef) extends Actor with ActorL
           }
         }
       }
-      val seq = Seq(bestMoves map f)
-      val jsonObject = Json.toJson(Map("moves" -> seq))
-      out ! jsonObject
+      val seq = bestMoves map f
+      val resultJson = Json.stringify(Json.toJson(Map("moves" -> seq)))
+      Logger.info(resultJson)
+      out ! resultJson
     }
     case _ => {
       log.info("Huhh?")
+      out ! "Huhh?"
     }
   }
 }

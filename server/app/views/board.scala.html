@@ -2,14 +2,17 @@
 @main("PlayCho") {
 <h2>Baduk Board with Style</h2>
 
-<div id="boardWrapper">
-    <canvas style="display: block" id="mainCanvas" width="255" height="255"/>
+<div id="container">
+    <div id="sidebar">
+        My thoughts:
+        <div id="thoughts">None yet</div>
+    </div>
+    <div id="boardWrapper">
+        <canvas style="display: block" id="mainCanvas" width="255" height="255"/>
+    </div>
 </div>
 <div id="think"><button onclick='setupWebSocket() ;$.ajax(jsRoutes.controllers.Application.think())'>Let Cho think</button></div>
 <div id="bestMove"></div>
-<div id="thoughts">
-    <progress value=65></progress>
-</div>
 <div id="footer"></div>
 
 }
