@@ -12,6 +12,13 @@ import score.{Result,TrompTaylor}
 import main.Global.porter
 
 
+object EngineActor {
+
+  case class GiveBestMoves(n: Int, player: Int)
+
+}
+
+
 class EngineActor() extends Actor with ActorLogging {
   import context._
 
@@ -35,40 +42,33 @@ class EngineActor() extends Actor with ActorLogging {
       context become active(emptyResult)
 
       // send another periodic tick after the specified delay
-      system.scheduler.scheduleOnce(8000 millis, self, Msg.GiveBestMove(game))
+      //system.scheduler.scheduleOnce(8000 millis, self, Msg.GiveBestMove(game))
+      //system.scheduler.schedule(1500 millis, self, EngineActor.GiveBestMoves(5, game.player))
+      system.scheduler.scheduleOnce(4000 millis, self, EngineActor.GiveBestMoves(5, game.player))
+      //system.scheduler.schedule(1500 millis, 1000 millis, self, EngineActor.GiveBestMoves(5, game.player))
     }
     case Msg.PlayedOutResult(move, result) => {
       // does scalaz have an operator for this?!
       context become active( currentResult + (move -> (currentResult(move) + result)) )
     }
     case Msg.GiveBestMove(game) => {
-
-      val bestMoves = if (game.player == Board.BLACK) {
-        ListMap(currentResult.toSeq.sortWith(_._2 > _._2 ):_*)
-      } else { // Board.WHITE
-        ListMap(currentResult.toSeq.sortWith(_._2 < _._2 ):_*)
-      }
-
-      log.info("Result: %s".format(bestMoves take 5))
-
-      val bestMove = bestMoves.head._1
+      val bestMove = bestMoves(currentResult, game.player).head._1
 
       porter ! Msg.CurrentBestMove(bestMove.coord.toString)
     }
-
-      // TODO: make this nice
-      //game.randomMove(Board.BLACK) match {
-      //  case Some(move) => {
-      //    log.info("give best move %s".format(move.coord.toString))
-      //    val child = context.actorOf(Props[PlayOutActor])
-      //    child ! Msg.PlayOut(Game.clone(game), move)
-      //    porter ! Msg.CurrentBestMove(move.coord.toString)
-      //  }
-      //  case None => {
-      //    log.info("No move available")
-      //  }
-      //}
+    case EngineActor.GiveBestMoves(n, player) => {
+      log.info("GiveBestMoves!!!!")
+      porter ! PorterActor.ForwardBestMoves(bestMoves(currentResult, player) take n)
+    }
   }
+
+  def bestMoves(currentResult: Map[Move, Result], player: Int): ListMap[Move, Result] = {
+    if (player == Board.BLACK) {
+      ListMap(currentResult.toSeq.sortWith(_._2 > _._2 ):_*)
+    } else { // Board.WHITE
+      ListMap(currentResult.toSeq.sortWith(_._2 < _._2 ):_*)
+    }
+    }
 }
 
 
@@ -88,7 +88,7 @@ class PlayOutActor() extends Actor with ActorLogging {
     game.make(lastMove)
 
     // determine the number of moves to play out. Later need a game termination criteria
-    val nofMoves: Int = 19 - game.nextMoveNr
+    val nofMoves: Int = 19 - game.moveNr
 
     def helper(nofMoves: Int): score.Result = {
       if (nofMoves > 0) {

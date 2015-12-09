@@ -83,6 +83,6 @@ object Application extends Controller {
   }
 
   def socket = WebSocket.acceptWithActor[String, String] { request => out =>
-    Props(new actors.MyWebSocketActor(Global.porter, out))
+    Props(new actors.WebSocketActor(Global.porter, out))
   }
 }

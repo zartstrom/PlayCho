@@ -23,6 +23,22 @@ object Board {
   val MIXED = -1
   val UNKNOWN = -2
 
+  import scala.collection.mutable.{Map => Dict}
+  val neighbourMaps = Dict.empty[BoardSize, Map[Int, List[Int]]]
+
+  // memoized function
+  // returns neighbours (in coords: "F3" -> List("E3", "F2", "G3", "F4") for a given boardsize
+  def universalNeighbours(boardSize: BoardSize): Map[Int, List[Int]] = {
+    def f(boardSize: BoardSize): Map[Int, List[Int]] = {
+      println("Cache miss: %s".format(boardSize.toString))
+      (
+        for { i <- 0 until boardSize.x * boardSize.y }
+        yield { (i -> Coord(i)(boardSize).neighbours.map(_.toInt)) }
+      ).toMap
+    }
+    neighbourMaps.getOrElseUpdate(boardSize, f(boardSize))
+  }
+
   def clone(board: Board): Board = {
     val copy = new Board(board.boardSize)
     Array.copy(board.position, 0, copy.position, 0, board.position.size) 
@@ -35,10 +51,12 @@ class Board(val boardSize: BoardSize) {
   val position = new Array[Int](boardSize.x * boardSize.y)
   val marks = new Array[Int](boardSize.x * boardSize.y)  // do I need marks?
   var ko = Coord.invalid
+  lazy val neighbours = Board.universalNeighbours(boardSize)
 
   def setStone(c: Coord, t: Int) {
     position(c) = t
   }
+
 
   def getStone(coord: Coord): Int = {
     if (coord.isValid) position(coord) else Board.UNKNOWN

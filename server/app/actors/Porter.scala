@@ -2,9 +2,15 @@ package actors
 
 
 import akka.actor._
+import scala.collection.immutable.ListMap
 
 import shared.{Game,Move}
+import score.Result
 
+
+object PorterActor {
+  case class ForwardBestMoves(bestMoves: ListMap[Move, Result])
+}
 
 class PorterActor() extends Actor with ActorLogging {
   var gameOpt: Option[Game] = None // maybe store more games in the future
@@ -51,6 +57,13 @@ class PorterActor() extends Actor with ActorLogging {
       // tell websocket something
       socketRefOpt match {
         case Some(socket) => socket forward Msg.CurrentBestMove(coord)
+        case None => log.info("websocket not available")
+      }
+    }
+    case PorterActor.ForwardBestMoves(bestMoves) => {
+      log.info("Porter forwards best moves")
+      socketRefOpt match {
+        case Some(socket) => socket ! WebSocketActor.ForwardBestMoves(bestMoves)
         case None => log.info("websocket not available")
       }
     }
