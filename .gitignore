@@ -3,3 +3,4 @@ target/
 .classpath
 .project
 .settings/
+server/logs/application.log
