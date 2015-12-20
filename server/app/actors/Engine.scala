@@ -7,15 +7,16 @@ import scala.collection.immutable.ListMap
 
 import shared.{Board,Coord,Game,Move}
 import score.{Result,TrompTaylor}
-import baduk.RandomPlayer
+import baduk.{Heuristics,RandomPlayer}
 
 import main.Global.porter
 
 
 object EngineActor {
-
+  case class Start(game: Game)
+  case class PlayOutResult(move: Move, result: Result)
+  case class GiveBestMove(game: Game)
   case class GiveBestMoves(n: Int, player: Int)
-
 }
 
 
@@ -25,41 +26,47 @@ class EngineActor() extends Actor with ActorLogging {
   def receive = active(Map.empty)
 
   def active(currentResult: Map[Move, Result]): Receive = {
-    case Msg.StartEngine(game: Game) => {
+    case EngineActor.Start(game: Game) => {
       log.info("starting engine")
-      val legalMoves = game.legalMoves(game.player) 
+      val legalMoves = game.legalMoves(game.player)
 
       val emptyResult = (legalMoves map ( move => (move -> Result(0, 0)) )).toMap
 
+      val candidateMoves = if (game.moveNr < game.boardSize.nofPoints / 2) {
+        Heuristics.noRim(legalMoves)
+      } else { legalMoves }
 
       for {
-        i <- (0 until 1)
-        move <- legalMoves take 1
+        i <- (0 until 70)
+        move <- candidateMoves // take 1
       } yield {
         val child = context.actorOf(Props[PlayOutActor])
-        child ! Msg.PlayOut(Game.clone(game), move)
+        child ! PlayOutActor.Start(Game.clone(game), move)
       }
 
       context become active(emptyResult)
 
       // send another periodic tick after the specified delay
-      //system.scheduler.scheduleOnce(8000 millis, self, Msg.GiveBestMove(game))
       //system.scheduler.schedule(1500 millis, self, EngineActor.GiveBestMoves(5, game.player))
-      system.scheduler.scheduleOnce(4000 millis, self, EngineActor.GiveBestMoves(5, game.player))
+      system.scheduler.scheduleOnce(8000 millis, self, EngineActor.GiveBestMoves(5, game.player))
       //system.scheduler.schedule(1500 millis, 1000 millis, self, EngineActor.GiveBestMoves(5, game.player))
     }
-    case Msg.PlayedOutResult(move, result) => {
+    case EngineActor.PlayOutResult(move, result) => {
       // does scalaz have an operator for this?!
       context become active( currentResult + (move -> (currentResult(move) + result)) )
     }
-    case Msg.GiveBestMove(game) => {
-      val bestMove = bestMoves(currentResult, game.player).head._1
+    case EngineActor.GiveBestMove(game) => {
+      val resultMoveOption = bestMoves(currentResult, game.player).headOption
 
-      porter ! Msg.CurrentBestMove(bestMove.coord.toString)
+      resultMoveOption match {
+        case Some(resultMove) => {
+          porter ! PorterActor.BestMove(resultMove._1.coord.toString)
+        }
+        case None => { log.error("No results available. Need to start engine first.") }
+      }
     }
     case EngineActor.GiveBestMoves(n, player) => {
-      log.info("GiveBestMoves!!!!")
-      porter ! PorterActor.ForwardBestMoves(bestMoves(currentResult, player) take n)
+      porter ! PorterActor.BestMoves(bestMoves(currentResult, player) take n)
     }
   }
 
@@ -73,45 +80,34 @@ class EngineActor() extends Actor with ActorLogging {
 }
 
 
+object PlayOutActor {
+  case class Start(game: Game, move: Move)
+}
+
+
 class PlayOutActor() extends Actor with ActorLogging {
 
   def receive = {
-    case Msg.PlayOut(game, lastMove) => {
+    case PlayOutActor.Start(game, lastMove) => {
       //log.info("play out game")
-      sender ! Msg.PlayedOutResult(lastMove, playOut(game, lastMove))
+      sender ! EngineActor.PlayOutResult(lastMove, playOut(game, lastMove))
       context stop self
     }
   }
 
   def playOut(game: Game, lastMove: Move): score.Result = {
     // copy the game somehow
-    log.info("First move of variant: %s".format(lastMove))
+    //log.info("First move of variant: %s".format(lastMove))
     game.make(lastMove)
-    val randomPlayer = new RandomPlayer(game)
+    val player = new RandomPlayer(game)
 
-    log.info("%d".format(game.moveNr))
+    //log.info("%d".format(game.moveNr))
     while (game.terminated == false) {
-      randomPlayer.play()
-      log.info("%d".format(game.moveNr))
+      player.play()
+      //log.info("%d".format(game.moveNr))
     }
     val result = evaluate(game)  // Not a good way
     result
-
-    // determine the number of moves to play out. Later need a game termination criteria
-    //val nofMoves: Int = 19 - game.moveNr
-
-    //def helper(nofMoves: Int): score.Result = {
-    //  if (nofMoves > 0) {
-    //    val moveOpt = game.makeRandomMove(game.player)
-    //    //log.debug(moveOpt.get.toString)
-    //    helper(nofMoves - 1)
-    //  } else {
-    //    val result = evaluate(game)  // Not a good way
-    //    //log.info(result.toString)
-    //    result
-    //  }
-    //}
-    //helper(nofMoves)
   }
 
   def evaluate(game: Game): score.Result = {

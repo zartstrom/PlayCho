@@ -9,6 +9,13 @@ import upickle.Js
 
 case class BoardSize(x: Int, y: Int) {
   def serialize(): String = { """{"sizeX": %d, "sizeY": %d}""".format(x, y) }
+  def nofPoints(): Int = x * y
+}
+
+object BoardSize {
+  def apply(x: Int): BoardSize = {
+    BoardSize(x, x)
+  }
 }
 
 

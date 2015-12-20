@@ -11,23 +11,19 @@ import shared.Move
 
 
 object WebSocketActor {
-  //def props(out: ActorRef, name: String) = Props(new MyWebSocketActor(out), name=name)
-
   def props(manager: ActorRef, out: ActorRef) = {
     Props(new WebSocketActor(manager, out))
   }
 
-  case class BestMoves()
-
-  case class ForwardBestMoves(bestMoves: ListMap[Move, Result])
-
+  case class BestMove(coord: String)
+  case class BestMoves(bestMoves: ListMap[Move, Result])
 }
 
 
 class WebSocketActor(manager: ActorRef, out: ActorRef) extends Actor with ActorLogging {
   override def preStart(): Unit = {
-    Logger.info("MyWebSocketActor: register myself at %s".format(manager.path.toString))
-    manager ! Msg.NewSocket
+    Logger.info("WebSocketActor: register myself at %s".format(manager.path.toString))
+    manager ! PorterActor.NewSocket
   }
 
   def receive = {
@@ -35,16 +31,20 @@ class WebSocketActor(manager: ActorRef, out: ActorRef) extends Actor with ActorL
       Logger.info("Logger: websocket actor says hi")
       out ! ("We received your message, hohohohoho: " + msg)
     }
-    case Msg.CurrentBestMove(coord) => {
+    case WebSocketActor.BestMove(coord) => {
       out ! "Current best move: %s".format(coord)
     }
-    case WebSocketActor.ForwardBestMoves(bestMoves) => {
+    case WebSocketActor.BestMoves(bestMoves) => {
       Logger.info("WebSocket forwards best moves")
       // toJson
       def f(ab: (Move, Result)): JsValue = {
         ab match {
           case (move, result) => {
-            Json.toJson( Map("coord" -> move.coord.toString, "value" -> "%.2f".format(result.average)) )
+            Json.toJson( Map(
+              "coord" -> move.coord.toString,
+              "value" -> "%.2f".format(result.average),
+              "nofGames" -> result.nofGames.toString
+            ) )
           }
         }
       }

@@ -30,6 +30,8 @@ case class Result(blackWins: Double, whiteWins: Double) {
     } else 0
   }
 
+  def nofGames(): Int = (blackWins + whiteWins).toInt
+
   def +(other: Result): Result = {
     Result(this.blackWins + other.blackWins, this.whiteWins + other.whiteWins)
   }
@@ -43,8 +45,8 @@ case object TrompTaylor {
 
   def score(game: Game): Double = {
     // count stones
-    val nofBlackStones: Int = game.board.position count (_ == Board.BLACK) 
-    val nofWhiteStones: Int = game.board.position count (_ == Board.WHITE) 
+    val nofBlackStones: Int = game.board.position count (_ == Board.BLACK)
+    val nofWhiteStones: Int = game.board.position count (_ == Board.WHITE)
 
     def eval(point: Int): Int = {
       /**

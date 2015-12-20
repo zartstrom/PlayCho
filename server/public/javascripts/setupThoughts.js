@@ -11,7 +11,12 @@ function setupWebSocket() {
         for (idx in json.moves) {
             var move = json.moves[idx];
             console.log(move);
-            thoughts += "<p>" + move.coord + ": <progress value=" + move.value + " max=1><progress><p>";
+            thoughts +=
+                "<p>" +
+                move.coord +
+                ": <progress value=" + move.value + " max=1></progress>" +
+                "(" + move.nofGames + ")" +
+                "<p>";
         }
         var t = document.getElementById("thoughts");
         t.innerHTML = thoughts;

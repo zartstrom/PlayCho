@@ -4,12 +4,17 @@ package actors
 import akka.actor._
 import scala.collection.immutable.ListMap
 
-import shared.{Game,Move}
+import shared.{BoardSize,Game,Move}
 import score.Result
 
 
 object PorterActor {
-  case class ForwardBestMoves(bestMoves: ListMap[Move, Result])
+  case class NewGame(boardSize: BoardSize)
+  case class NewMove(move: Move)
+  case object StartEngine
+  case object NewSocket
+  case class BestMove(coord: String)
+  case class BestMoves(bestMoves: ListMap[Move, Result])
 }
 
 class PorterActor() extends Actor with ActorLogging {
@@ -18,11 +23,11 @@ class PorterActor() extends Actor with ActorLogging {
   var socketRefOpt: Option[ActorRef] = None
 
   def receive = {
-    case Msg.NewGame(boardSize) => {
+    case PorterActor.NewGame(boardSize) => {
       gameOpt = Some(Game(boardSize))
       log.info("Created new game")
     }
-    case Msg.NewMove(move) => {
+    case PorterActor.NewMove(move) => {
       log.info("Player %d played at %s".format(move.player, move.coord))
 
       gameOpt match {
@@ -34,7 +39,7 @@ class PorterActor() extends Actor with ActorLogging {
         } // do something about it
       }
     }
-    case Msg.StartThinking => {
+    case PorterActor.StartEngine => {
       // create EngineActor if it does not exist
       log.info("starting thinking")
 
@@ -46,27 +51,26 @@ class PorterActor() extends Actor with ActorLogging {
       for {
         engineActor <- engineActorOpt
         game <- gameOpt
-      } yield { engineActor ! Msg.StartEngine(game) }
+      } yield { engineActor ! EngineActor.Start(game) }
     }
-    case Msg.NewSocket => {
+    case PorterActor.NewSocket => {
       log.info("setup new socket")
       socketRefOpt = Some(sender)
     }
-    case Msg.CurrentBestMove(coord) => {
-      log.info("learn about the best move currently")
+    case PorterActor.BestMove(coord) => {
+      // log.info("learn about the best move currently")
       // tell websocket something
       socketRefOpt match {
-        case Some(socket) => socket forward Msg.CurrentBestMove(coord)
+        case Some(socket) => socket ! WebSocketActor.BestMove(coord)
         case None => log.info("websocket not available")
       }
     }
-    case PorterActor.ForwardBestMoves(bestMoves) => {
+    case PorterActor.BestMoves(bestMoves) => {
       log.info("Porter forwards best moves")
       socketRefOpt match {
         case Some(socket) => {
           log.info("telling WebSocket something")
-          socket forward WebSocketActor.ForwardBestMoves(bestMoves)
-          //socket ! "bulls"
+          socket forward WebSocketActor.BestMoves(bestMoves)
         }
         case None => log.info("websocket not available")
       }

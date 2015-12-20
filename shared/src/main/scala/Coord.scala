@@ -43,6 +43,8 @@ class Coord(val x: Int, val y: Int)(implicit val boardSize: BoardSize) {
       ).filter(_.isValid)
     } else { List() }
   }
+
+  lazy val isRim: Boolean = { x == 0 || y == 0 || x == boardSize.x - 1 || y == boardSize.y - 1 }
 }
 
 object Coord {

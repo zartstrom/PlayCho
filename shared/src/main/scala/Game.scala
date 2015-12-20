@@ -161,15 +161,18 @@ class Game(val board: Board, val komi: Double = 0.5, var player: Int = Board.BLA
     }
 
     this.moveNr += 1
-    if (this.moveNr > 400) {
+    if (this.moveNr > this.boardSize.nofPoints) {
       //Logger.error("Game has more than 400 moves, terminate condition is lousy")
       this.terminated = true
     }
     this.player = Game.opponent(player)
   }
 
+  def make(play: Play): Unit = make(play, board.position)
+
+  //def make(move: Move): Unit = make(move, board.position)
+
   def makePass(): Unit = {
-    println("PASS!!!!")
     board.ko = Coord.invalid // not DRY
     this.terminated = (this.moveNr - 1) <= this.lastPass
     this.lastPass = this.moveNr
@@ -192,8 +195,6 @@ class Game(val board: Board, val komi: Double = 0.5, var player: Int = Board.BLA
     // remove captured stones
     placeStones(captured, Board.EMPTY)(position)
   }
-
-  def make(move: Move): Unit = make(move, board.position)
 
   def makeMoves(ms: List[Move]) {
     for(m <- ms) yield { make(m) }

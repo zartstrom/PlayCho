@@ -13,8 +13,8 @@ import play.api.routing.JavaScriptReverseRouter
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import main._
+import actors.PorterActor
 import shared.{Board, BoardSize, Coord, Move}
-import actors.Msg
 
 
 object Application extends Controller {
@@ -33,7 +33,7 @@ object Application extends Controller {
 
     boardSizeResult match {
       case JsSuccess(b, _) => {
-        Global.porter ! Msg.NewGame(b)
+        Global.porter ! PorterActor.NewGame(b)
         Ok("created game")
       }
       case e: JsError => {
@@ -55,7 +55,7 @@ object Application extends Controller {
 
     moveRes match {
       case JsSuccess(move, _) => {
-        Global.porter ! Msg.NewMove(move)
+        Global.porter ! PorterActor.NewMove(move)
         Ok("received move")
       }
       case e: JsError => {
@@ -78,7 +78,7 @@ object Application extends Controller {
   // used when clicking button in board.scala.html
   def think = Action { request =>
     Logger.info("let me think about it")
-    Global.porter ! Msg.StartThinking
+    Global.porter ! PorterActor.StartEngine
     Ok("told Engine to start thinking")
   }
 
